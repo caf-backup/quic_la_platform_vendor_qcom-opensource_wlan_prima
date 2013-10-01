@@ -2229,8 +2229,12 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
            tANI_U8 *value = command;
            unsigned int oui_data;
            unsigned int data;
-           tANI_U32 present, len;
+           tHalHandle hHal = WLAN_HDD_GET_CTX(pAdapter)->hHal;
+           tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+           tANI_U32 present, len, len1, len2, len3;
+           tANI_U32 cfgId;
            tANI_U8 addIE[WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN] = {0};
+           tANI_U8 addIEData[WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN] = {0};
            tANI_U8 ibssPropIe[WLAN_HDD_IBSS_PROP_IE_SIZE] = {0xDD,0x05,0x00,0x00,0x00,0x00,0x00};
 
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -2314,7 +2318,140 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
               ret = -EFAULT;
               goto exit;
            }
-       }
+
+           /* Populating probe resp frame */
+           if ((ccmCfgGetInt((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                             WNI_CFG_PROBE_RSP_ADDNIE_FLAG,
+                             &present)) != eHAL_STATUS_SUCCESS)
+           {
+               VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                  "%s:unable to fetch WNI_CFG_PROBE_RSP_ADDNIE_FLAG", __func__);
+               ret = -EFAULT;
+               goto exit;
+           }
+
+           if (present) {
+
+              len1 = 0;
+              if (eSIR_SUCCESS != wlan_cfgGetStrLen(pMac,
+                                      WNI_CFG_PROBE_RSP_ADDNIE_DATA1, &len1)) {
+                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: unable to fetch WNI_CFG_PROBE_RSP_ADDNIE_DATA1",
+                    __func__);
+                 ret = -EFAULT;
+                 goto exit;
+              }
+              if (len1 < WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN && len1 &&
+                 (WLAN_HDD_IBSS_PROP_IE_SIZE + len1) <= SIR_MAX_PACKET_SIZE) {
+
+                 if ((ccmCfgGetStr((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                         WNI_CFG_PROBE_RSP_ADDNIE_DATA1, &addIEData[0], &len1))
+                         != eHAL_STATUS_SUCCESS) {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                       "%s:unable fetch WNI_CFG_PROBE_RSP_ADDNIE_DATA1",
+                       __func__);
+                    ret = -EFAULT;
+                    goto exit;
+                 }
+                 len = len1;
+                 cfgId = WNI_CFG_PROBE_RSP_ADDNIE_DATA1;
+                 goto setcfg;
+              } /* data 1 */
+              /* reading data 2 and 3 */
+              else if (WNI_CFG_PROBE_RSP_ADDNIE_DATA1_LEN == len1) {
+
+                 len2 = 0;
+                 if (eSIR_SUCCESS != wlan_cfgGetStrLen(pMac,
+                                  WNI_CFG_PROBE_RSP_ADDNIE_DATA2, &len2) ) {
+                    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                     "%s: unable to fetch PROBE_RSP_ADDNIE_DATA2", __func__);
+                    ret = -EFAULT;
+                    goto exit;
+                 }
+                 if (len2 < WNI_CFG_PROBE_RSP_ADDNIE_DATA2_LEN && len2 &&
+                    (WLAN_HDD_IBSS_PROP_IE_SIZE + len1 + len2)
+                       <= SIR_MAX_PACKET_SIZE) {
+
+                    if ((ccmCfgGetStr((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                        WNI_CFG_PROBE_RSP_ADDNIE_DATA2, &addIEData[0], &len2))
+                        != eHAL_STATUS_SUCCESS)
+                    {
+                        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                         "%s:unable to fetch PROBE_RSP_ADDNIE_DATA2", __func__);
+                        ret = -EFAULT;
+                        goto exit;
+                    }
+                    len = len2;
+                    cfgId = WNI_CFG_PROBE_RSP_ADDNIE_DATA2;
+                    goto setcfg;
+                 } /* data 2 */
+                 /* reading data 3 */
+                 else if (WNI_CFG_PROBE_RSP_ADDNIE_DATA2_LEN == len2) {
+                    len3 = 0;
+                    if (eSIR_SUCCESS != wlan_cfgGetStrLen(pMac,
+                                  WNI_CFG_PROBE_RSP_ADDNIE_DATA3, &len3)) {
+
+                       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                        "%s: unable to fetch PROBE_RSP_ADDNIE_DATA3", __func__);
+                       ret = -EFAULT;
+                       goto exit;
+                    }
+                    if (len3 < WNI_CFG_PROBE_RSP_ADDNIE_DATA3_LEN && len3 &&
+                       (WLAN_HDD_IBSS_PROP_IE_SIZE + len1 + len2 + len3)
+                                               <= SIR_MAX_PACKET_SIZE) {
+
+                       if ((ccmCfgGetStr((WLAN_HDD_GET_CTX(pAdapter))->hHal,
+                          WNI_CFG_PROBE_RSP_ADDNIE_DATA3, &addIEData[0], &len3))
+                           != eHAL_STATUS_SUCCESS)
+                       {
+                          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          "%s:unable to ftch PROBE_RSP_ADDNIE_DATA3", __func__);
+                          ret = -EFAULT;
+                          goto exit;
+                       }
+                       len = len3;
+                       cfgId = WNI_CFG_PROBE_RSP_ADDNIE_DATA3;
+                       goto setcfg;
+                    }
+                    else if (WNI_CFG_PROBE_RSP_ADDNIE_DATA3_LEN == len3) {
+                       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                          "%s: cannot accomoodate in data3", __func__);
+                       ret = -EFAULT;
+                       goto exit;
+                    }
+                 } /* data 3 */
+              } /* data 2 and 3 */
+           } /* probe rsp ADD IE present */
+           else {
+              /* probe rsp add IE is not present */
+              len = 0;
+              cfgId = WNI_CFG_PROBE_RSP_ADDNIE_DATA1;
+           } /* else */
+setcfg:
+           vos_mem_copy(&addIEData[len], ibssPropIe, WLAN_HDD_IBSS_PROP_IE_SIZE);
+           len += WLAN_HDD_IBSS_PROP_IE_SIZE;
+
+           if (ccmCfgSetStr(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                               cfgId,
+                               (tANI_U8*)(&addIEData[0]),
+                               len, NULL,
+                               eANI_BOOLEAN_FALSE)
+                               == eHAL_STATUS_FAILURE) {
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: unable to copy to cfgID %ld", __func__, cfgId);
+              ret = -EFAULT;
+              goto exit;
+           }
+           if (ccmCfgSetInt(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                            WNI_CFG_PROBE_RSP_ADDNIE_FLAG, 1,NULL,
+                           eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+           {
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                       "%s: unable to copy WNI_CFG_PROBE_RSP_ADDNIE_FLAG", __func__);
+              ret = -EFAULT;
+              goto exit;
+           }
+        }
 #ifdef WLAN_FEATURE_RELIABLE_MCAST
        else if (strncmp(command, "SETRMCENABLE", 12) == 0)
        {
