@@ -11147,10 +11147,10 @@ void WDA_GetIbssPeerInfoRspCallback(WDI_IbssPeerInfoRspParams *peerInfoRspParams
    tWDA_CbContext *pWDA;
    tpSirIbssGetPeerInfoRspParams pIbssGetPeerInfoRsp;
    vos_msg_t vosMsg;
-   v_U32_t   bufSize = 0, wdaCnt = 0;
+   v_U32_t wdaCnt = 0;
 
    pIbssGetPeerInfoRsp =
-                  vos_mem_malloc(sizeof(tpSirIbssGetPeerInfoRspParams));
+                  vos_mem_malloc(sizeof(tSirIbssGetPeerInfoRspParams));
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__func__);
@@ -11158,24 +11158,26 @@ void WDA_GetIbssPeerInfoRspCallback(WDI_IbssPeerInfoRspParams *peerInfoRspParams
 
    pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext ;
 
-   bufSize = (peerInfoRspParams->wdiNumPeers * sizeof(WDI_IbssPeerInfoParams));
 
    if (peerInfoRspParams->wdiNumPeers > 32)
    {
       pr_info("%s] Number of peers is more than 32, returning\n", __func__);
       /* free the mem and return */
       vos_mem_free((v_VOID_t *) pIbssGetPeerInfoRsp);
-      if(pWdaParams->wdaMsgParam)
-         vos_mem_free(pWdaParams->wdaMsgParam);
-      if(pWdaParams->wdaWdiApiMsgParam)
-         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-      vos_mem_free(pWdaParams);
+      if(NULL != pWdaParams)
+      {
+         if(pWdaParams->wdaMsgParam)
+            vos_mem_free(pWdaParams->wdaMsgParam);
+         if(pWdaParams->wdaWdiApiMsgParam)
+            vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+         vos_mem_free(pWdaParams);
+      }
       return;
    }
 
    /* Message Header */
    pIbssGetPeerInfoRsp->mesgType = eWNI_SME_IBSS_PEER_INFO_RSP;
-   pIbssGetPeerInfoRsp->mesgLen = sizeof(tpSirIbssGetPeerInfoRspParams) + bufSize;
+   pIbssGetPeerInfoRsp->mesgLen = sizeof(tSirIbssGetPeerInfoRspParams);
    pIbssGetPeerInfoRsp->ibssPeerInfoRspParams.status = peerInfoRspParams->wdiStatus;
    pIbssGetPeerInfoRsp->ibssPeerInfoRspParams.numPeers = peerInfoRspParams->wdiNumPeers;
 
@@ -11203,11 +11205,14 @@ void WDA_GetIbssPeerInfoRspCallback(WDI_IbssPeerInfoRspParams *peerInfoRspParams
       vos_mem_free((v_VOID_t *) pIbssGetPeerInfoRsp);
    }
 
-   if(pWdaParams->wdaMsgParam)
-      vos_mem_free(pWdaParams->wdaMsgParam);
-   if(pWdaParams->wdaWdiApiMsgParam)
-      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-   vos_mem_free(pWdaParams);
+   if(NULL != pWdaParams)
+   {
+      if(pWdaParams->wdaMsgParam)
+         vos_mem_free(pWdaParams->wdaMsgParam);
+      if(pWdaParams->wdaWdiApiMsgParam)
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams);
+   }
 
    return;
 }

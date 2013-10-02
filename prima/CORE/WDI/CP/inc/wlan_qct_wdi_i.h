@@ -76,8 +76,10 @@ when        who    what, where, why
  
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
 #define WDI_MAX_SUPPORTED_STAS   41
+#define WDI_MAX_IBSS_PEER_SUPPORED_STAS 32
 #else
 #define WDI_MAX_SUPPORTED_STAS   12
+#define WDI_MAX_IBSS_PEER_SUPPORED_STAS 11
 #endif
 #define WDI_MAX_SUPPORTED_BSS     5 
 
