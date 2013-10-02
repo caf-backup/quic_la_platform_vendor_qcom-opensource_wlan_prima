@@ -284,7 +284,6 @@ done:
 
 void dumpCsrCommandInfo(tpAniSirGlobal pMac, tSmeCmd *pCmd)
 {
-#ifdef WLAN_DEBUG
     switch( pCmd->command )
     {
     case eSmeCommandScan:
@@ -312,7 +311,6 @@ void dumpCsrCommandInfo(tpAniSirGlobal pMac, tSmeCmd *pCmd)
     default:
         break;
     }
-#endif  //#ifdef WLAN_DEBUG
 }
 
 tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
@@ -9239,4 +9237,41 @@ eHalStatus sme_RequestIBSSPeerInfo(tHalHandle hHal, void *pUserData,
    return (vosStatus);
 }
 #endif /* FEATURE_CESIUM_PROPRIETARY */
+
+void smeGetCommandQStatus( tHalHandle hHal )
+{
+    tSmeCmd *pTempCmd = NULL;
+    tListElem *pEntry;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    if (NULL == pMac)
+    {
+        smsLog( pMac, LOGE, "smeGetCommandQStatus: pMac is NULL" );
+        return;
+    }
+
+    pEntry = csrLLPeekHead( &pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK );
+    if( pEntry )
+    {
+        pTempCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+    }
+    smsLog( pMac, LOGE, "Currently smeCmdActiveList has command (0x%X)",
+            (pTempCmd) ? pTempCmd->command : eSmeNoCommand );
+    if(pTempCmd)
+    {
+        if( eSmeCsrCommandMask & pTempCmd->command )
+        {
+            //CSR command is stuck. See what the reason code is for that command
+            dumpCsrCommandInfo(pMac, pTempCmd);
+        }
+    } //if(pTempCmd)
+
+    smsLog( pMac, LOGE, "Currently smeCmdPendingList has %d commands",
+            csrLLCount(&pMac->sme.smeCmdPendingList));
+
+    smsLog( pMac, LOGE, "Currently roamCmdPendingList has %d commands",
+            csrLLCount(&pMac->roam.roamCmdPendingList));
+
+    return;
+}
 
