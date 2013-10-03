@@ -393,7 +393,7 @@ void hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
         pHWversion = "Unknown";
     }
 
-    wrqu->data.length = snprintf(extra, WE_MAX_STR_LEN,
+    wrqu->data.length = scnprintf(extra, WE_MAX_STR_LEN,
                                  "Host SW:%s, FW:%s, HW:%s",
                                  QWLAN_VERSIONSTR,
                                  pSWversion,
@@ -2684,7 +2684,7 @@ static int iw_get_rssi(struct net_device *dev,
    {
       /* we are not connected or our SSID is too long
          so we cannot report an rssi */
-      rc = snprintf(cmd, len, "OK");
+      rc = scnprintf(cmd, len, "OK");
    }
    else
    {
@@ -2699,7 +2699,7 @@ static int iw_get_rssi(struct net_device *dev,
       {
           /* append the rssi to the ssid in the format required by
              the WiFI Framework */
-          rc = snprintf(&cmd[ssidlen], len - ssidlen, " rssi %d", s7Rssi);
+          rc = scnprintf(&cmd[ssidlen], len - ssidlen, " rssi %d", s7Rssi);
       }
       else
       {
@@ -4509,19 +4509,19 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 if ( WLAN_ADAPTER == adapter_num )
                 {
                     useAdapter = pAdapter;
-                    buf = snprintf(extra + len, WE_MAX_STR_LEN - len,
+                    buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                             "\n\n wlan0 States:-");
                     len += buf;
                 }
                 else if ( P2P_ADAPTER == adapter_num )
                 {
-                    buf = snprintf(extra + len, WE_MAX_STR_LEN - len,
+                    buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                             "\n\n p2p0 States:-");
                     len += buf;
 
                     if( !pHddCtx )
                     {
-                        buf = snprintf(extra + len, WE_MAX_STR_LEN - len,
+                        buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                                 "\n pHddCtx is NULL");
                         len += buf;
                         break;
@@ -4532,7 +4532,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                     useAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_P2P_CLIENT);
                     if ( !useAdapter )
                     {
-                        buf = snprintf(extra + len, WE_MAX_STR_LEN - len,
+                        buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                                 "\n Device not configured as P2P_CLIENT.");
                         len += buf;
                         break;
@@ -4544,7 +4544,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR( useAdapter );
                 if( !pHddStaCtx )
                 {
-                    buf = snprintf(extra + len,  WE_MAX_STR_LEN - len,
+                    buf = scnprintf(extra + len,  WE_MAX_STR_LEN - len,
                             "\n pHddStaCtx is NULL");
                     len += buf;
                     break;
@@ -4552,7 +4552,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 
                 tlState = smeGetTLSTAState(hHal, pHddStaCtx->conn_info.staId[0]);
 
-                buf = snprintf(extra + len, WE_MAX_STR_LEN - len,
+                buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                         "\n HDD Conn State - %s "
                         "\n \n SME State:"
                         "\n Neighbour Roam State - %s"
@@ -4575,7 +4575,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             }
 
             /* Printing Lim State starting with global lim states */
-            buf = snprintf(extra + len, WE_MAX_STR_LEN - len,
+            buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                     "\n \n LIM STATES:-"
                     "\n Global Sme State - %s "\
                     "\n Global mlm State - %s "\
@@ -4590,7 +4590,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             {
                 if ( pMac->lim.gpSession[count].valid )
                 {
-                    buf = snprintf(extra + len, WE_MAX_STR_LEN - len,
+                    buf = scnprintf(extra + len, WE_MAX_STR_LEN - len,
                     "\n Lim Valid Session %d:-"
                     "\n PE Sme State - %s "
                     "\n PE Mlm State - %s "
@@ -4671,6 +4671,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             VOS_STATUS status;
             v_U8_t i, len;
             char* buf ;
+
             tChannelListInfo channel_list;
 
             status = iw_softap_get_channel_list(dev, info, wrqu, (char *)&channel_list);
@@ -4682,22 +4683,23 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             buf = extra;
 
             /**
-                       * Maximum channels = WNI_CFG_VALID_CHANNEL_LIST_LEN. Maximum buffer
-                       * needed = 5 * number of channels. Check if sufficient buffer is available and 
-                       * then proceed to fill the buffer.
-                       */
+             * Maximum channels = WNI_CFG_VALID_CHANNEL_LIST_LEN. Maximum buffer
+             * needed = 5 * number of channels. Check ifsufficient
+             * buffer is available and then proceed to fill the buffer.
+             */
             if(WE_MAX_STR_LEN < (5 * WNI_CFG_VALID_CHANNEL_LIST_LEN))
             {
-                hddLog(VOS_TRACE_LEVEL_ERROR, "%s Insufficient Buffer to populate channel list\n",__func__);
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                        "%s Insufficient Buffer to populate channel list\n",
+                            __func__);
                 return -EINVAL;
             }
-            len = snprintf(buf, 5, "%u ", channel_list.num_channels);
-            buf += len;
+            len = scnprintf(buf, WE_MAX_STR_LEN, "%u ",
+                    channel_list.num_channels);
             for(i = 0 ; i < channel_list.num_channels; i++)
             {
-                len = snprintf(buf, 5,
+                len += scnprintf(buf + len, WE_MAX_STR_LEN - len,
                                "%u ", channel_list.channels[i]);
-                buf += len;
             }
             wrqu->data.length = strlen(extra)+1;
 
@@ -4741,9 +4743,9 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             {
                if (0 != pHddStaCtx->conn_info.staId[ idx ])
                {
-                   length += snprintf
+                   length += scnprintf
                              (
-                             (extra + length), WE_MAX_STR_LEN,
+                             (extra + length), WE_MAX_STR_LEN - length,
                              "%d .%02x:%02x:%02x:%02x:%02x:%02x\n",
                              pHddStaCtx->conn_info.staId[ idx ],
                              pHddStaCtx->conn_info.peerMacAddress[idx].bytes[0],
