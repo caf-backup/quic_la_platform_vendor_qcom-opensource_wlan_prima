@@ -26,6 +26,7 @@
 #include "limSendMessages.h"
 #include "limSession.h"
 #include "limIbssPeerMgmt.h"
+#include "limRMC.h"
 
 
 /**
@@ -796,6 +797,10 @@ void
 limIbssDelete(
     tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+    limRmcIbssDelete(pMac);
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
     limIbssDeleteAllPeers(pMac,psessionEntry);
 
     ibss_coalesce_free(pMac);
@@ -1363,6 +1368,10 @@ __limIbssSearchAndDeletePeer(tpAniSirGlobal    pMac,
             ucUcastSig = pStaDs->ucUcastSig;
             ucBcastSig = pStaDs->ucBcastSig;
 
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+            limRmcTransmitterDelete(pMac, pStaDs->staAddr);
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
+
             (void) limDelSta(pMac, pStaDs, false /*asynchronous*/, psessionEntry);
             limDeleteDphHashEntry(pMac, pStaDs->staAddr, peerIdx, psessionEntry);
             limReleasePeerIdx(pMac, peerIdx, psessionEntry);
@@ -1630,6 +1639,10 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
                     staIndex = pStaDs->staIndex;
                     ucUcastSig = pStaDs->ucUcastSig;
                     ucBcastSig = pStaDs->ucBcastSig;
+
+#if defined WLAN_FEATURE_RELIABLE_MCAST
+                    limRmcTransmitterDelete(pMac, pStaDs->staAddr);
+#endif /* WLAN_FEATURE_RELIABLE_MCAST */
 
                     (void) limDelSta(pMac, pStaDs, false /*asynchronous*/,psessionEntry);
                     limDeleteDphHashEntry(pMac, pStaDs->staAddr, peerIdx,psessionEntry);

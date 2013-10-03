@@ -1047,7 +1047,7 @@ __limProcessRMCLeaderPickNew(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      */
 
     RMC.action = SIR_MAC_RMC_LEADER_INFORM_SELECTED;
-    status = limSendRMCActionFrame(pMac, pMac->rmcContext.leader,
+    status = limSendRMCActionFrame(pMac, SIR_MAC_RMC_MCAST_ADDRESS,
                          &RMC, psessionEntry);
     if (eSIR_FAILURE == status)
     {
@@ -1585,6 +1585,9 @@ limRmcInit(tpAniSirGlobal pMac)
 void
 limRmcCleanup(tpAniSirGlobal pMac)
 {
+    /* Delete all entries from Leader database. */
+    limRmcIbssDelete(pMac);
+
     if (!VOS_IS_STATUS_SUCCESS(vos_lock_destroy(&pMac->rmcContext.lkRmcLock)))
     {
         PELOGE(limLog(pMac, LOGE, FL("RMC lock destroy failed!"));)
@@ -1630,6 +1633,8 @@ limRmcTransmitterDelete(tpAniSirGlobal pMac, tSirMacAddr transmitter)
         limLog(pMac, LOGE,
             FL("RMC: limRMCTransmitterDelete lock release failed"));
     }
+
+    limLog(pMac, LOG1, FL("RMC: limRmcTransmitterDelete complete"));
 }
 
 /**
@@ -1652,6 +1657,8 @@ limRmcTransmitterDelete(tpAniSirGlobal pMac, tSirMacAddr transmitter)
 void
 limRmcIbssDelete(tpAniSirGlobal pMac)
 {
+    tpPESession psessionEntry;
+
     /* Acquire RMC lock */
     if (!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&pMac->rmcContext.lkRmcLock)))
     {
@@ -1659,6 +1666,20 @@ limRmcIbssDelete(tpAniSirGlobal pMac)
              FL("RMC: limRmcIbssDelete lock acquire failed"));
         return;
     }
+
+    /*
+     * This API relies on a single active IBSS session.
+     */
+    psessionEntry = limIsIBSSSessionActive(pMac);
+    if (NULL == psessionEntry)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("RMC: limRmcIbssDelete:No active IBSS"));)
+        return;
+    }
+
+    /* send LBP_UPDATE_IND */
+    __limPostMsgUpdateInd(pMac, eRMC_LEADER_CANCELLED, eRMC_TRANSMITTER_ROLE,
+                         psessionEntry->selfMacAddr, pMac->rmcContext.leader);
 
     /* Cancel pending timer */
     tx_timer_deactivate(&pMac->rmcContext.gRmcLeaderSelectTimer);
