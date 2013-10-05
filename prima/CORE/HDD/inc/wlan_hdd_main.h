@@ -1039,6 +1039,8 @@ struct hdd_context_s
 
     v_U8_t sus_res_mcastbcast_filter;
 
+    v_BOOL_t sus_res_mcastbcast_filter_valid;
+
     /* debugfs entry */
     struct dentry *debugfs_phy;
 
