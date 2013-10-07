@@ -3,20 +3,6 @@
 # Assume no targets will be supported
 WLAN_CHIPSET :=
 
-# Build/Package options for 8960 target
-ifeq ($(call is-board-platform,msm8960),true)
-WLAN_CHIPSET := prima_cld
-WLAN_SELECT := CONFIG_PRIMA_WLAN=m
-WLAN_ISOC_SELECT := WLAN_ISOC=n
-endif
-
-# Build/Package options for 8974 target
-ifeq ($(call is-board-platform,msm8974),true)
-WLAN_CHIPSET := pronto_cld
-WLAN_SELECT := CONFIG_PRONTO_WLAN=m
-WLAN_ISOC_SELECT := WLAN_ISOC=y
-endif
-
 # Build/Package options for 8084 target
 ifeq ($(call is-board-platform,apq8084),true)
 WLAN_CHIPSET := qca_cld
@@ -75,12 +61,8 @@ LOCAL_MODULE_PATH         := $(TARGET_OUT)/lib/modules/$(WLAN_CHIPSET)
 include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
-# Create Symbolic link
-$(shell mkdir -p $(TARGET_OUT)/lib/modules; \
-	ln -sf /system/lib/modules/$(WLAN_CHIPSET)/proprietary_$(WLAN_CHIPSET)_wlan.ko \
-	       $(TARGET_OUT)/lib/modules/wlan.ko)
-
 # Copy config ini files to target
+ifeq ($(WLAN_PROPRIETARY),1)
 $(shell mkdir -p $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
 $(shell rm -f $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_SHIPSET)/WCNSS_qcom_cfg.ini)
 $(shell rm -f $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_SHIPSET)/WCNSS_cfg.dat)
@@ -88,6 +70,7 @@ $(shell rm -f $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_SHIPSET)/WCNSS_qcom_wlan_nv
 $(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_qcom_cfg.ini $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
 $(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_cfg.dat $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
 $(shell cp $(LOCAL_PATH)/firmware_bin/WCNSS_qcom_wlan_nv.bin $(TARGET_OUT)/etc/firmware/wlan/$(WLAN_CHIPSET))
+endif
 
 endif # DLKM check
 
