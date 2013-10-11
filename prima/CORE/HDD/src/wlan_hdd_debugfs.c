@@ -122,7 +122,7 @@ static ssize_t wcnss_patterngen_write(struct file *file,
                const char __user *buf, size_t count, loff_t *ppos)
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t *)file->private_data;
-    hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    hdd_context_t *pHddCtx;
     tSirAddPeriodicTxPtrn *addPeriodicTxPtrnParams;
     tSirDelPeriodicTxPtrn *delPeriodicTxPtrnParams;
 
@@ -141,6 +141,8 @@ static ssize_t wcnss_patterngen_write(struct file *file,
 
         return -EINVAL;
     }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
     if (!sme_IsFeatureSupportedByFW(WLAN_PERIODIC_TX_PTRN))
     {
