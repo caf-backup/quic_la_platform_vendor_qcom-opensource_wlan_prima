@@ -1152,6 +1152,10 @@ struct hdd_context_s
     vos_timer_t    tx_rx_trafficTmr;
     v_U8_t         drvr_miracast;
     v_U8_t         issplitscan_enabled;
+
+    /* VHT80 allowed*/
+    v_BOOL_t isVHT80Allowed;
+
 };
 
 
@@ -1233,5 +1237,8 @@ v_BOOL_t hdd_is_valid_mac_address(const tANI_U8* pMacAddr);
 VOS_STATUS hdd_issta_p2p_clientconnected(hdd_context_t *pHddCtx);
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType, tANI_U8 sessionId);
+#endif
+#ifdef CONFIG_ENABLE_LINUX_REG
+void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 #endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )
