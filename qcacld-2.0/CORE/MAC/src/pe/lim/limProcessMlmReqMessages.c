@@ -1416,6 +1416,7 @@ mlm_add_sta(
     {
         pSta->vhtCapable = VOS_TRUE;
         pSta->vhtTxBFCapable = psessionEntry->txBFIniFeatureEnabled;
+        pSta->vhtTxMUBformeeCapable = psessionEntry->txMuBformee;
     }
 
     // Since this is Self-STA, need to populate Self MAX_AMPDU_SIZE capabilities
