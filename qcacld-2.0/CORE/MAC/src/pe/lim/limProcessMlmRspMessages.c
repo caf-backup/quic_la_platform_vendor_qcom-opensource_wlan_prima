@@ -39,6 +39,7 @@
 #include <limFT.h>
 #endif
 #include "wlan_qct_wda.h"
+#include "vos_utils.h"
 
 static void limHandleSmeJoinResult(tpAniSirGlobal, tSirResultCodes, tANI_U16,tpPESession);
 static void limHandleSmeReaasocResult(tpAniSirGlobal, tSirResultCodes, tANI_U16, tpPESession);
@@ -4890,6 +4891,10 @@ void limProcessRxScanEvent(tpAniSirGlobal pMac, void *buf)
                     limLog(pMac, LOGE,
                             FL(" NULL pointer of gpLimRemainOnChanReq"));
                 }
+            }
+            else
+            {
+                limAddScanChannelInfo(pMac, vos_freq_to_chan(pScanEvent->chanFreq));
             }
             break;
         case SCAN_EVENT_BSS_CHANNEL:
