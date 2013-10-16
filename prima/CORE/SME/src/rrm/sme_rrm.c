@@ -1,17 +1,53 @@
 /*
- * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- * */
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /**=========================================================================
   
   \file  sme_Rrm.c
   
   \brief implementation for SME RRM APIs
   
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
+   Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
    
-   Qualcomm Technologies Confidential and Proprietary.
+   Qualcomm Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -150,10 +186,7 @@ void rrmIndicateNeighborReportResult(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
   \return - 0 for success, non zero for failure
   
   --------------------------------------------------------------------------*/
-static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
-                                                  tCsrScanResultInfo **pResultArr,
-                                                  tANI_U8 measurementDone,
-                                                  tANI_U8 bss_count )
+static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac, tCsrScanResultInfo **pResultArr, tANI_U8 measurementDone )
 {
    tpSirBssDescription pBssDesc = NULL;
    tpSirBeaconReportXmitInd pBeaconRep;
@@ -201,62 +234,35 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
        while (pCurResult) 
        {
            pBssDesc = &pCurResult->BssDescriptor;
-           if(pBssDesc != NULL)
-           {
-               ie_len = GET_IE_LEN_IN_BSS( pBssDesc->length );
-               pBeaconRep->pBssDescription[msgCounter] = vos_mem_malloc (
-                                            ie_len+sizeof(tSirBssDescription));
-               if (NULL == pBeaconRep->pBssDescription[msgCounter])
-                   break;
-               vos_mem_copy( pBeaconRep->pBssDescription[msgCounter],
-                             pBssDesc,
-                             sizeof(tSirBssDescription) );
-               vos_mem_copy( &pBeaconRep->pBssDescription[msgCounter]->ieFields[0],
-                             pBssDesc->ieFields, ie_len  );
-               smsLog( pMac, LOG1,
-                   "...RRM Result Bssid = %02x-%02x-%02x-%02x-%02x-%02x chan= %d, rssi = -%d",
-                   pBeaconRep->pBssDescription[msgCounter]->bssId[ 0 ],
-                   pBeaconRep->pBssDescription[msgCounter]->bssId[ 1 ],
-                   pBeaconRep->pBssDescription[msgCounter]->bssId[ 2 ],
-                   pBeaconRep->pBssDescription[msgCounter]->bssId[ 3 ],
-                   pBeaconRep->pBssDescription[msgCounter]->bssId[ 4 ],
-                   pBeaconRep->pBssDescription[msgCounter]->bssId[ 5 ],
-                   pBeaconRep->pBssDescription[msgCounter]->channelId,
-                   pBeaconRep->pBssDescription[msgCounter]->rssi * (-1));
+           ie_len = GET_IE_LEN_IN_BSS( pBssDesc->length );
+           pBeaconRep->pBssDescription[msgCounter] = vos_mem_malloc ( ie_len+sizeof(tSirBssDescription) );
+           if (NULL == pBeaconRep->pBssDescription[msgCounter])
+               break;
+           vos_mem_copy( pBeaconRep->pBssDescription[msgCounter], pBssDesc, sizeof(tSirBssDescription) );
+           vos_mem_copy( &pBeaconRep->pBssDescription[msgCounter]->ieFields[0], pBssDesc->ieFields, ie_len  );
 
-               pBeaconRep->numBssDesc++;
+           pBeaconRep->numBssDesc++;
 
-               if (++msgCounter >= SIR_BCN_REPORT_MAX_BSS_DESC_PER_ACTION_FRAME)
-                   break;
+           if (++msgCounter >= SIR_BCN_REPORT_MAX_BSS_DESC)
+               break;
 
-               pCurResult = pResultArr[bssCounter + msgCounter];
-           }
-           else
-           {
-               pCurResult = NULL;
+           if (csrRoamIs11rAssoc(pMac)) {
                break;
            }
+
+           pCurResult = pResultArr[msgCounter];
        }
 
        bssCounter+=msgCounter; 
-       if (!pResultArr || (pCurResult == NULL) || (bssCounter >= bss_count))
-       {
-           pCurResult = NULL;
-           smsLog(pMac, LOG1,
-                  "Reached to the max/last BSS in pCurResult list");
-       }
+       if (!pResultArr || !pCurResult || (bssCounter>=SIR_BCN_REPORT_MAX_BSS_DESC))
+            pCurResult = NULL;
        else
-       {
-           pCurResult = pResultArr[bssCounter];
-           smsLog(pMac, LOG1,
-                  "Move to the next BSS set in pCurResult list");
-       }
+            pCurResult = pResultArr[bssCounter];
 
        pBeaconRep->fMeasureDone = (pCurResult)?false:measurementDone;
 
-       smsLog(pMac, LOG1,
-              "SME Sending BcnRepXmit to PE numBss %d msgCounter %d bssCounter %d",
-              pBeaconRep->numBssDesc, msgCounter, bssCounter);
+       smsLog(pMac, LOGW, "SME Sending BcnRepXmit to PE numBss %d",
+              pBeaconRep->numBssDesc);
 
        status = palSendMBMessage(pMac->hHdd, pBeaconRep);
 
@@ -279,15 +285,12 @@ static eHalStatus sme_RrmSendBeaconReportXmitInd( tpAniSirGlobal pMac,
   \return - 0 for success, non zero for failure
   
   --------------------------------------------------------------------------*/
-static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
-                                         tANI_U8 num_chan,
-                                         tANI_U8* chanList,
-                                         tANI_U8 measurementDone )
+static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac, tANI_U8 num_chan, tANI_U8* chanList, tANI_U8 measurementDone )
 {
    tCsrScanResultFilter filter;
    tScanResultHandle pResult;
    tCsrScanResultInfo *pScanResult, *pNextResult;
-   tCsrScanResultInfo *pScanResultsArr[SIR_BCN_REPORT_MAX_BSS_PER_CHANNEL];
+   tCsrScanResultInfo *pScanResultsArr[SIR_BCN_REPORT_MAX_BSS_DESC];
    eHalStatus status;
    tANI_U8 counter=0;
    tpRrmSMEContext pSmeRrmContext = &pMac->rrm.rrmSmeContext;
@@ -298,7 +301,7 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
 #endif
 
    vos_mem_zero( &filter, sizeof(filter) );
-   vos_mem_zero( pScanResultsArr, sizeof(pNextResult)*SIR_BCN_REPORT_MAX_BSS_PER_CHANNEL );
+   vos_mem_zero( pScanResultsArr, sizeof(pNextResult)*SIR_BCN_REPORT_MAX_BSS_DESC );
 
    filter.BSSIDs.numOfBSSIDs = 1;
    filter.BSSIDs.bssid = &pSmeRrmContext->bssId;
@@ -356,14 +359,14 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
       // send a xmit indication with moreToFollow set to MEASURMENT_DONE
       // so that PE can clean any context allocated.
       if( measurementDone )
-         status = sme_RrmSendBeaconReportXmitInd( pMac, NULL, measurementDone, 0 );
+         status = sme_RrmSendBeaconReportXmitInd( pMac, NULL, measurementDone );
       return status;
    }
 
    pScanResult = sme_ScanResultGetFirst(pMac, pResult);
 
    if( NULL == pScanResult && measurementDone )
-      status = sme_RrmSendBeaconReportXmitInd( pMac, NULL, measurementDone, 0 );
+      status = sme_RrmSendBeaconReportXmitInd( pMac, NULL, measurementDone );
 
    counter=0;
    while (pScanResult)
@@ -371,19 +374,13 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac,
       pNextResult = sme_ScanResultGetNext(pMac, pResult);
       pScanResultsArr[counter++] = pScanResult;
       pScanResult = pNextResult; //sme_ScanResultGetNext(hHal, pResult);
-      if (counter >= SIR_BCN_REPORT_MAX_BSS_PER_CHANNEL)
+      if (counter >= SIR_BCN_REPORT_MAX_BSS_DESC)
          break;
       }
 
    if (counter)
-   {
-       status = sme_RrmSendBeaconReportXmitInd( pMac,
-                                                pScanResultsArr,
-                                                measurementDone,
-                                                counter);
-       smsLog(pMac, LOG1, " Number of BSS Desc with RRM Scan %d ",
-              counter);
-   }
+       status = sme_RrmSendBeaconReportXmitInd( pMac, pScanResultsArr, measurementDone);
+
    sme_ScanResultPurge(pMac, pResult); 
 
    return status;
@@ -671,7 +668,7 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
          /* Indicate measurement completion to PE */
          /* If this is not done, pCurrentReq pointer will not be freed and 
             PE will not handle subsequent Beacon requests */
-         sme_RrmSendBeaconReportXmitInd(pMac, NULL, true, 0);
+         sme_RrmSendBeaconReportXmitInd(pMac, NULL, true);
          break;
 
    }

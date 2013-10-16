@@ -1,8 +1,23 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /*==========================================================================
  *
@@ -412,15 +427,6 @@ typedef enum
 
    WLAN_HAL_GET_IBSS_PEER_INFO_REQ          = 227,
    WLAN_HAL_GET_IBSS_PEER_INFO_RSP          = 228,
-
-   WLAN_HAL_RATE_UPDATE_IND                 = 229,
-
-   /* Tx Fail for weak link notification */
-   WLAN_HAL_TX_FAIL_MONITOR_IND             = 230,
-   WLAN_HAL_TX_FAIL_IND                     = 231,
-
-   /* Multi-hop IP routing offload */
-   WLAN_HAL_IP_FORWARD_TABLE_UPDATE_IND     = 232,
 
   WLAN_HAL_MSG_MAX = WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE
 }tHalHostMsgType;
@@ -2556,13 +2562,8 @@ typedef enum eTxRateInfo
    eHAL_TX_RATE_HT20   = 0x2,    /* HT20 rates */
    eHAL_TX_RATE_HT40   = 0x4,    /* HT40 rates */
    eHAL_TX_RATE_SGI    = 0x8,    /* Rate with Short guard interval */
-   eHAL_TX_RATE_LGI    = 0x10,   /* Rate with Long guard interval */
-   eHAL_TX_RATE_VHT20  = 0x20,   /* VHT 20 rates */
-   eHAL_TX_RATE_VHT40  = 0x40,   /* VHT 20 rates */
-   eHAL_TX_RATE_VHT80  = 0x80,   /* VHT 20 rates */
-   eHAL_TX_RATE_VIRT   = 0x100,  /* Virtual Rate */
-   eHAL_TX_RATE_MAX    = WLAN_HAL_MAX_ENUM_SIZE
-} tTxrateinfoflags, tTxRateInfoFlags;
+   eHAL_TX_RATE_LGI    = 0x10    /* Rate with Long guard interval */
+} tTxrateinfoflags;
 
 
 typedef PACKED_PRE struct PACKED_POST
@@ -6751,104 +6752,6 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalIbssPeerInfoReqParams ibssPeerInfoReqParams;
 }tHalIbssPeerInfoReq, *tpHalIbssPeerInfoReq;
-
-/*---------------------------------------------------------------------------
- WLAN_HAL_RATE_UPDATE_IND
- *-------------------------------------------------------------------------*/
-typedef PACKED_PRE struct PACKED_POST
-{
-    /* 0 implies UCAST RA, positive value implies fixed rate, -1 implies ignore this param */
-    tANI_S32 ucastDataRate; //unit Mbpsx10
-
-    /* TX flag to differentiate between HT20, HT40 etc */
-    tTxRateInfoFlags ucastDataRateTxFlag;
-
-    /* BSSID - Optional. 00-00-00-00-00-00 implies apply to all BCAST STAs */
-    tSirMacAddr bssid;
-
-    /* 0 implies MCAST RA, positive value implies fixed rate, -1 implies ignore */
-    tANI_S32 reliableMcastDataRate; //unit Mbpsx10
-
-    /* TX flag to differentiate between HT20, HT40 etc */
-    tTxRateInfoFlags reliableMcastDataRateTxFlag;
-
-    /* Default (non-reliable) MCAST(or BCAST)  fixed rate in 2.4 GHz, 0 implies ignore */
-    tANI_U32 mcastDataRate24GHz; //unit Mbpsx10
-
-    /* TX flag to differentiate between HT20, HT40 etc */
-    tTxRateInfoFlags mcastDataRate24GHzTxFlag;
-
-    /*  Default (non-reliable) MCAST(or BCAST) fixed rate in 5 GHz, 0 implies ignore */
-    tANI_U32 mcastDataRate5GHz; //unit Mbpsx10
-
-    /* TX flag to differentiate between HT20, HT40 etc */
-    tTxRateInfoFlags mcastDataRate5GHzTxFlag;
-
-} tHalRateUpdateParams, *tpHalRateUpdateParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tHalMsgHeader header;
-    tHalRateUpdateParams halRateUpdateParams;
-}  tHalRateUpdateInd, * tpHalRateUpdateInd;
-
-/*---------------------------------------------------------------------------
-* WLAN_HAL_TX_FAIL_IND
-*--------------------------------------------------------------------------*/
-// Northbound indication from FW to host on weak link detection
-typedef PACKED_PRE struct PACKED_POST
-{
-   // Sequence number increases by 1 whenever the device driver
-   // sends a notification event. This is cleared as 0 when the
-   // JOIN IBSS commamd is issued
-    tANI_U16 seqNo;
-    tANI_U16 staId;
-    tANI_U8 macAddr[HAL_MAC_ADDR_LEN];
-} tHalTXFailIndParams, *tpHalTXFailIndParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tHalMsgHeader header;
-    tHalTXFailIndParams txFailIndParams;
-}  tHalTXFailIndMsg, *tpHalTXFailIndMsg;
-
-/*---------------------------------------------------------------------------
-* WLAN_HAL_TX_FAIL_MONITOR_IND
-*--------------------------------------------------------------------------*/
-// Southbound message from Host to monitor the Tx failures
-typedef PACKED_PRE struct PACKED_POST
-{
-    // tx_fail_count = 0 should disable the TX Fail monitor,
-    // non-zero value should enable it.
-    tANI_U8 tx_fail_count;
-} tTXFailMonitorInfo, *tpTXFailMonitorInfo;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tHalMsgHeader  header;
-    tTXFailMonitorInfo txFailMonitor;
-} tTXFailMonitorInd, *tpTXFailMonitorInd;
-
-/*---------------------------------------------------------------------------
-* WLAN_HAL_IP_FORWARD_TABLE_UPDATE_IND
-*--------------------------------------------------------------------------*/
-typedef PACKED_PRE struct PACKED_POST
-{
-   tANI_U8 destIpv4Addr[HAL_IPV4_ADDR_LEN];
-   tANI_U8 nextHopMacAddr[HAL_MAC_ADDR_LEN];
-} tDestIpNextHopMacPair;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-   tANI_U8 numEntries;
-   tDestIpNextHopMacPair destIpMacPair[1];
-} tWlanIpForwardTableUpdateIndParam;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-   tHalMsgHeader header;
-   tWlanIpForwardTableUpdateIndParam ipForwardTableParams;
-} tWlanIpForwardTableUpdateInd;
 
 /*---------------------------------------------------------------------------
  *-------------------------------------------------------------------------*/

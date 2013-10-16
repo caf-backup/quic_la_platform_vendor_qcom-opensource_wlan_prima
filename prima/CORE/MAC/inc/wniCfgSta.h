@@ -1,11 +1,43 @@
 /*
- * Copyright (C) 2011-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- * Copyright (C) 2007-2009 Qualcomm Technologies, Inc.
- * All rights reserved. Proprietary and Confidential.
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
  */
-
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 /*
  * DO NOT EDIT - This file is generated automatically
  */
@@ -325,7 +357,6 @@
 #define WNI_CFG_FLEX_CONNECT_POWER_FACTOR    303
 #define WNI_CFG_ANTENNA_DIVESITY    304
 #define WNI_CFG_GO_LINK_MONITOR_TIMEOUT    305
-#define WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY    306
 
 /*
  * String parameter lengths 
@@ -1632,12 +1663,8 @@
 #define WNI_CFG_GO_LINK_MONITOR_TIMEOUT_STAMAX    50
 #define WNI_CFG_GO_LINK_MONITOR_TIMEOUT_STADEF    10
 
-#define WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY_STAMIN    0
-#define WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY_STAMAX    4294967295
-#define WNI_CFG_RMC_ACTION_PERIOD_FREQUENCY_STADEF    300
-
-#define CFG_PARAM_MAX_NUM        307
-#define CFG_STA_IBUF_MAX_SIZE    241
+#define CFG_PARAM_MAX_NUM        306
+#define CFG_STA_IBUF_MAX_SIZE    240
 #define CFG_STA_SBUF_MAX_SIZE    3388
 #define CFG_SEM_MAX_NUM          19
 

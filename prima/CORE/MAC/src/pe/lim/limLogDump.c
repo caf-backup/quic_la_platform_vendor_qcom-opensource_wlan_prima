@@ -1,17 +1,52 @@
 /*
-* Copyright (c) 2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /*============================================================================
 limLogDump.c
 
 Implements the dump commands specific to the lim module. 
 
-Copyright (c) 2007 Qualcomm Technologies, Inc.
+Copyright (c) 2007 QUALCOMM Incorporated.
 All Rights Reserved.
-Qualcomm Technologies Confidential and Proprietary
+Qualcomm Confidential and Proprietary
  ============================================================================*/
 
 #include "vos_types.h"
@@ -36,10 +71,6 @@ Qualcomm Technologies Confidential and Proprietary
 #endif
 #include "smeInside.h"
 #include "wlan_qct_wda.h"
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-#include "wlan_qct_tl.h"
-#include "limRMC.h"
-#endif
 #include "wlan_qct_wdi_dts.h"
 
 void WDA_TimerTrafficStatsInd(tWDA_CbContext *pWDA);
@@ -1101,7 +1132,7 @@ dump_lim_del_sta( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 ar
 
     // Issue Disassoc Indication to SME.
     vos_mem_copy((tANI_U8 *) &mlmDisassocInd.peerMacAddr,
-                 (tANI_U8 *) pStaDs->staAddr, sizeof(tSirMacAddr));
+                                (tANI_U8 *) pStaDs->staAddr, sizeof(tSirMacAddr));
     mlmDisassocInd.reasonCode = reasonCode;
     mlmDisassocInd.disassocTrigger = eLIM_PEER_ENTITY_DISASSOC;
 
@@ -1191,7 +1222,7 @@ dump_lim_send_SM_Power_Mode( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, 
         state = (tSirMacHTMIMOPowerSaveState) arg1;
 
     pMBMsg = vos_mem_malloc(WNI_CFG_MB_HDR_LEN + sizeof(tSirMacHTMIMOPowerSaveState));
-    if (NULL == pMBMsg)
+    if(NULL == pMBMsg)
     {
         p += log_sprintf( pMac,p, "pMBMsg is NULL\n");
         return p;
@@ -1206,7 +1237,7 @@ dump_lim_send_SM_Power_Mode( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, 
 
     if (limPostMsgApi(pMac, &msg) != TX_SUCCESS)
     {
-        p += log_sprintf( pMac,p, "Updating the SMPower Request has failed \n");
+            p += log_sprintf( pMac,p, "Updating the SMPower Request has failed \n");
         vos_mem_free(pMBMsg);
     }
     else
@@ -1502,7 +1533,7 @@ dump_lim_get_pe_statistics(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tA
         default:
             return p;
     }
-
+    
     pReq = vos_mem_malloc(sizeof(tAniGetPEStatsReq));
     if (NULL == pReq)
     {
@@ -2107,9 +2138,9 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                    pftPreAuthReq->preAuthchannelNum = 6; 
 
                    vos_mem_copy((void *) &pftPreAuthReq->currbssId,
-                                (void *)psessionEntry->bssId, 6);
+                       (void *)psessionEntry->bssId, 6);  
                    vos_mem_copy((void *) &pftPreAuthReq->preAuthbssId,
-                                (void *)macAddr, 6);
+                       (void *)macAddr, 6);  
                    pftPreAuthReq->ft_ies_length = (tANI_U16)pMac->ft.ftSmeContext.auth_ft_ies_length;
 
                    // Also setup the mac address in sme context.
@@ -2138,8 +2169,8 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                             pftPreAuthReq->currbssId[2], pftPreAuthReq);
 
                    Profile.pBssDesc->channelId = (tANI_U8)arg3;
-                   vos_mem_copy((void *)pftPreAuthReq->pbssDescription, (void *)Profile.pBssDesc,
-                       Profile.pBssDesc->length);
+                   vos_mem_copy((void *)pftPreAuthReq->pbssDescription, (void *)Profile.pBssDesc, 
+                       Profile.pBssDesc->length);  
 
                    msg.type = eWNI_SME_FT_PRE_AUTH_REQ;
                    msg.bodyptr = pftPreAuthReq;
@@ -2362,93 +2393,6 @@ dump_lim_get_pkts_rcvd_per_rssi_values( tpAniSirGlobal pMac, tANI_U32 arg1, tANI
 }
 #endif
 
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-
-static char *
-dump_lim_enable_reliable_mcast_data_path
-(
-    tpAniSirGlobal pMac,
-    tANI_U32 arg1,
-    tANI_U32 arg2,
-    tANI_U32 arg3,
-    tANI_U32 arg4,
-    char *p
-)
-{
-    v_MACADDR_t reliableMcastAddr;
-    v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
-
-    reliableMcastAddr.bytes[0] = (tANI_U8)((arg1 & 0xFF000000) >> 24);
-    reliableMcastAddr.bytes[1] = (tANI_U8)((arg1 & 0x00FF0000) >> 16);
-    reliableMcastAddr.bytes[2] = (tANI_U8)((arg1 & 0x0000FF00) >>  8);
-    reliableMcastAddr.bytes[3] = (tANI_U8)((arg1 & 0x000000FF));
-    reliableMcastAddr.bytes[4] = (tANI_U8)((arg1 & 0xFF000000) >> 24);
-    reliableMcastAddr.bytes[5] = (tANI_U8)((arg1 & 0x00FF0000) >> 16);
-
-    limLog(pMac, LOGE,
-        FL("Enable RMCAST data path for MCAST transmitter "
-           "0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x"),
-           reliableMcastAddr.bytes[0], reliableMcastAddr.bytes[1],
-           reliableMcastAddr.bytes[2], reliableMcastAddr.bytes[3],
-           reliableMcastAddr.bytes[4], reliableMcastAddr.bytes[5] );
-
-    /*Input format is in MAC address fromat for example
-      iwpriv wlan0 dump 0xaabbccdd 0xeeff0000 translates into enable RMCAST for
-      MAC address 0xaa:0xbb:0xcc:0xdd:0xee:0xff*/
-
-    /*Enable TL data path*/
-    WLANTL_EnableReliableMcast( pVosContext, &reliableMcastAddr );
-
-  return p;
-}
-
-static char *
-dump_lim_disable_reliable_mcast_data_path
-(
-    tpAniSirGlobal pMac,
-    tANI_U32 arg1,
-    tANI_U32 arg2,
-    tANI_U32 arg3,
-    tANI_U32 arg4,
-    char *p
-)
-{
-    v_MACADDR_t reliableMcastAddr;
-    v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
-
-    reliableMcastAddr.bytes[0] = (tANI_U8)((arg1 & 0xFF000000) >> 24);
-    reliableMcastAddr.bytes[1] = (tANI_U8)((arg1 & 0x00FF0000) >> 16);
-    reliableMcastAddr.bytes[2] = (tANI_U8)((arg1 & 0x0000FF00) >>  8);
-    reliableMcastAddr.bytes[3] = (tANI_U8)((arg1 & 0x000000FF));
-    reliableMcastAddr.bytes[4] = (tANI_U8)((arg1 & 0xFF000000) >> 24);
-    reliableMcastAddr.bytes[5] = (tANI_U8)((arg1 & 0x00FF0000) >> 16);
-
-    limLog(pMac, LOGE,
-        FL("Enable RMCAST data path for MCAST transmitter "
-           "0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x"),
-           reliableMcastAddr.bytes[0], reliableMcastAddr.bytes[1],
-           reliableMcastAddr.bytes[2], reliableMcastAddr.bytes[3],
-           reliableMcastAddr.bytes[4], reliableMcastAddr.bytes[5] );
-
-    /*Input format is in MAC address fromat for example
-      iwpriv wlan0 dump 0xaabbccdd 0xeeff0000 translates into enable RMCAST for
-      MAC address 0xaa:0xbb:0xcc:0xdd:0xee:0xff*/
-
-    /*Disable TL data path*/
-    WLANTL_DisableReliableMcast( pVosContext, &reliableMcastAddr );
-
-    return p;
-}
-
-static char *
-dump_lim_rmc_status(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2,
-             tANI_U32 arg3, tANI_U32 arg4, char *p)
-{
-    limRmcDumpStatus(pMac);
-    return p;
-}
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
 /* API to fill Rate Info based on mac efficiency
  * arg 1: mac efficiency to be used to calculate mac thorughput for a given rate index
  * arg 2: starting rateIndex to apply the macEfficiency to
@@ -2537,14 +2481,7 @@ static tDumpFuncEntry limMenuDumpTable[] = {
     {369,   "PE.LIM: pkts/rateIdx: iwpriv wlan0 dump 368 <staId> <boolean to flush counter>",    dump_lim_get_pkts_rcvd_per_rate_idx},
     {370,   "PE.LIM: pkts/rssi: : iwpriv wlan0 dump 369 <staId> <boolean to flush counter>",    dump_lim_get_pkts_rcvd_per_rssi_values},
 #endif
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-    {371,   "PE.LIM: Enable RMCAST data path in TL for input MCAST addr",
-        dump_lim_enable_reliable_mcast_data_path },
-    {372,   "PE.LIM: Disable RMCAST data path in TL for input MCAST addr",
-        dump_lim_disable_reliable_mcast_data_path },
-    {373,   "PE.LIM: Dump RMCAST transmitter and leader status", dump_lim_rmc_status },
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-    {374,   "PE.LIM: MAS RX stats MAC eff <MAC eff in percentage>",  dump_limRateInfoBasedOnMacEff},
+    {373,   "PE.LIM: MAS RX stats MAC eff <MAC eff in percentage>",  dump_limRateInfoBasedOnMacEff},
 };
 
 

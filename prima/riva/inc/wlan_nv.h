@@ -1,4 +1,24 @@
 /*
+  * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+  *
+  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+  *
+  *
+  * Permission to use, copy, modify, and/or distribute this software for
+  * any purpose with or without fee is hereby granted, provided that the
+  * above copyright notice and this permission notice appear in all
+  * copies.
+  *
+  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+  * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+  * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  * PERFORMANCE OF THIS SOFTWARE.
+*/
+/*
 * Copyright (c) 2012 Qualcomm Atheros, Inc.
 * All Rights Reserved.
 * Qualcomm Atheros Confidential and Proprietary.
@@ -329,24 +349,24 @@ typedef enum
 
 typedef enum
 {
-    RF_CHAN_1_1 = RF_CHAN_1,
-    RF_CHAN_2_1 = RF_CHAN_2,
-    RF_CHAN_3_1 = RF_CHAN_3,
-    RF_CHAN_4_1 = RF_CHAN_4,
-    RF_CHAN_5_1 = RF_CHAN_5,
-    RF_CHAN_6_1 = RF_CHAN_6,
-    RF_CHAN_7_1 = RF_CHAN_7,
-    RF_CHAN_8_1 = RF_CHAN_8,
-    RF_CHAN_9_1 = RF_CHAN_9,
-    RF_CHAN_10_1 = RF_CHAN_10,
-    RF_CHAN_11_1 = RF_CHAN_11,
-    RF_CHAN_12_1 = RF_CHAN_12,
-    RF_CHAN_13_1 = RF_CHAN_13,
-    RF_CHAN_14_1 = RF_CHAN_14,
+   RF_CHAN_1_1 = RF_CHAN_1,
+   RF_CHAN_2_1 = RF_CHAN_2,
+   RF_CHAN_3_1 = RF_CHAN_3,
+   RF_CHAN_4_1 = RF_CHAN_4,
+   RF_CHAN_5_1 = RF_CHAN_5,
+   RF_CHAN_6_1 = RF_CHAN_6,
+   RF_CHAN_7_1 = RF_CHAN_7,
+   RF_CHAN_8_1 = RF_CHAN_8,
+   RF_CHAN_9_1 = RF_CHAN_9,
+   RF_CHAN_10_1 = RF_CHAN_10,
+   RF_CHAN_11_1 = RF_CHAN_11,
+   RF_CHAN_12_1 = RF_CHAN_12,
+   RF_CHAN_13_1 = RF_CHAN_13,
+   RF_CHAN_14_1 = RF_CHAN_14,
 // The above params are used for scripts.
-    NUM_2_4GHZ_CHANNELS,
+   NUM_2_4GHZ_CHANNELS,
 }eRfChannels_2_4GHz;
-
+	
 enum
 {
    NV_CHANNEL_DISABLE,

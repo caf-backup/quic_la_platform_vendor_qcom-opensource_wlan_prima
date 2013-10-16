@@ -1,11 +1,46 @@
 /*
-* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
 
 /*
- * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirMacProtDef.h contains the MAC/PHY protocol
  * definitions used across various projects.
  * Author:        Chandra Modumudi
@@ -2311,18 +2346,6 @@ typedef __ani_attr_pre_packed struct sSirMacVendorSpecificFrameHdr
 } __ani_attr_packed tSirMacVendorSpecificFrameHdr, *tpSirMacVendorSpecificFrameHdr;
 #endif
 
-#if  defined (WLAN_FEATURE_RELIABLE_MCAST)
-typedef __ani_attr_pre_packed struct sSirMacOxygenNetworkFrameHdr
-{
-    tANI_U8    category;
-    tANI_U8    Oui[3];
-    tANI_U8    MagicCode[6];
-    tANI_U8    version;
-    tANI_U8    actionID;
-    tANI_U8    dialogToken;
-} __ani_attr_packed tSirMacOxygenNetworkFrameHdr, *tpSirMacOxygenNetworkFrameHdr;
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
 typedef __ani_attr_pre_packed struct sSirMacVendorSpecificPublicActionFrameHdr
 {
     tANI_U8    category;
@@ -2741,28 +2764,4 @@ typedef __ani_attr_pre_packed struct sSirPhy11aHdr
 } __ani_attr_packed tSirPhy11aHdr, *tpSirPhy11aHdr;
 
 #define SIR_MAC_MIN_IE_LEN 2 // Minimum IE length for IE validation
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-
-// Reliable Multicast action codes
-#define SIR_MAC_RMC_ENABLE_REQ                  0
-#define SIR_MAC_RMC_DISABLE_REQ                 1
-#define SIR_MAC_RMC_LEADER_INFORM_SELECTED      2
-#define SIR_MAC_RMC_LEADER_INFORM_CANCELLED     3
-
-// Reliable multicast protocol version
-#define SIR_MAC_RMC_VER 0x01
-
-// Organization Identifier
-#define SIR_MAC_RMC_OUI             "\x00\x16\x32"
-#define SIR_MAC_RMC_OUI_SIZE        3
-
-// Magic code for Oxygen network
-#define SIR_MAC_OXYGEN_MAGIC_CODE       "OXYGEN"
-#define SIR_MAC_OXYGEN_MAGIC_CODE_SIZE  6
-
-#define SIR_MAC_RMC_MCAST_ADDRESS  "\x01\x00\x5E\x00\x02\x0A"
-
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
 #endif /* __MAC_PROT_DEFS_H */

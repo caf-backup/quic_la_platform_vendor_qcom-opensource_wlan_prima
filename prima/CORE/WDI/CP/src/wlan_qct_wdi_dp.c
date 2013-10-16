@@ -1,8 +1,43 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /*===========================================================================
 
@@ -24,9 +59,9 @@
   Are listed for each API below.
 
 
-  Copyright (c) 2010 Qualcomm Technologies, Inc.
+  Copyright (c) 2010 QUALCOMM Incorporated.
   All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
+  Qualcomm Confidential and Proprietary
 ===========================================================================*/
 
 /*===========================================================================
@@ -361,7 +396,7 @@ WDI_FillTxBd
     wpt_uint8*             pTid, 
     wpt_uint8              ucDisableFrmXtl, 
     void*                  pTxBd, 
-    wpt_uint32             ucTxFlag,
+    wpt_uint8              ucTxFlag, 
     wpt_uint8              ucProtMgmtFrame,
     wpt_uint32             uTimeStamp,
     wpt_uint8*             staIndex
@@ -840,13 +875,6 @@ WDI_FillTxBd
    
             WDI_STATableGetStaType(pWDICtx, ucStaId, &ucSTAType);
             if(!ucUnicastDst)
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-              /*Check for reliable MCAST enabled bit if set then
-                queue frames in QID 1 else 0*/
-              if ( ucTxFlag & WDI_RELIABLE_MCAST_REQUESTED_MASK )
-                pBd->queueId = BTQM_QID1;
-              else
-#endif
                 pBd->queueId = BTQM_QID0;
 #ifndef HAL_SELF_STA_PER_BSS
             else if( ucUnicastDst && (ucStaId == pWDICtx->ucSelfStaId))

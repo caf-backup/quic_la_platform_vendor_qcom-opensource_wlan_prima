@@ -1,8 +1,44 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
 
 #ifndef WLAN_QCT_WDI_I_H
 #define WLAN_QCT_WDI_I_H
@@ -76,10 +112,8 @@ when        who    what, where, why
  
 #ifdef WLAN_SOFTAP_VSTA_FEATURE
 #define WDI_MAX_SUPPORTED_STAS   41
-#define WDI_MAX_IBSS_PEER_SUPPORED_STAS 32
 #else
 #define WDI_MAX_SUPPORTED_STAS   12
-#define WDI_MAX_IBSS_PEER_SUPPORED_STAS 11
 #endif
 #define WDI_MAX_SUPPORTED_BSS     5 
 
@@ -417,17 +451,6 @@ typedef enum
 
   /* WLAN FW LPHB config request */
   WDI_LPHB_CFG_REQ                              = 85,
-  /* Send LBP Leader Request */
-  WDI_LBP_LEADER_REQ                            = 86,
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-  WDI_HAL_IBSS_PEER_INFO_REQ                    = 87,
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-  /* WLAN FW set batch scan request */
-  WDI_SET_BATCH_SCAN_REQ                        = 88,
-#endif
 
   WDI_MAX_REQ,
 
@@ -452,24 +475,11 @@ typedef enum
   /* Send a delete periodic Tx pattern indicationto HAL */
   WDI_DEL_PERIODIC_TX_PATTERN_IND,
 
-  /* Send LBP Update Indication */
-  WDI_LBP_UPDATE_IND,
-
-  /* Send Rate Update Indication */
-  WDI_RATE_UPDATE_IND,
-
   /*Keep adding the indications to the max request
     such that we keep them sepparate */
 
-#ifdef FEATURE_WLAN_BATCH_SCAN
-  /*Send stop batch scan indication to FW*/
-  WDI_STOP_BATCH_SCAN_IND,
-  /*Send stop batch scan indication to FW*/
-  WDI_TRIGGER_BATCH_SCAN_RESULT_IND,
-#endif
-
   WDI_MAX_UMAC_IND
-}WDI_RequestEnumType;
+}WDI_RequestEnumType; 
 
 /*--------------------------------------------------------------------------- 
    WLAN DAL Supported Response Types
@@ -726,18 +736,6 @@ typedef enum
   /* WLAN FW LPHB Config response */
   WDI_LPHB_CFG_RESP                             = 84,
 
-  /* Reliable Multicast Leader Response from FW to Host */
-  WDI_LBP_LEADER_RESP                           = 85,
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-  WDI_HAL_IBSS_PEER_INFO_RSP                    = 86,
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-  WDI_SET_BATCH_SCAN_RESP                        = 87,
-#endif
-
-
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
@@ -797,21 +795,13 @@ typedef enum
   /* Periodic Tx Pattern Indication from FW to Host */
   WDI_HAL_PERIODIC_TX_PTRN_FW_IND     = WDI_HAL_IND_MIN + 16,
 
-  /* Reliable Multicast Update Indication from FW to Host */
-  WDI_LBP_UPDATE_IND_TO_HOST           = WDI_HAL_IND_MIN + 17,
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-  WDI_BATCHSCAN_RESULT_IND           =  WDI_HAL_IND_MIN + 18,
-#endif
-
-
   WDI_MAX_RESP
-}WDI_ResponseEnumType;
+}WDI_ResponseEnumType; 
 
-typedef struct
+typedef struct 
 {
   /*Flag that marks a session as being in use*/
-  wpt_boolean         bInUse;
+  wpt_boolean         bInUse; 
 
   /*Flag that keeps track if a series of assoc requests for this BSS are
     currently pending in the queue or processed
@@ -2778,41 +2768,6 @@ WDI_Status WDI_ProcessLPHBConfReq
 );
 #endif /* FEATURE_WLAN_LPHB */
 
-#ifdef FEATURE_WLAN_BATCH_SCAN
-/**
- @brief WDI_ProcessSetBatchScanReq -
-    Send set batch scan configuration request to FW
-
- @param  pWDICtx : wdi context
-         pEventData : indication data
-
- @see
- @return success or failure
-*/
-WDI_Status WDI_ProcessSetBatchScanReq
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief WDI_ProcessGetBatchScanReq -
-    Send get batch scan request to FW
-
- @param  pWDICtx : wdi context
-         pEventData : indication data
-
- @see
- @return success or failure
-*/
-WDI_Status WDI_ProcessGetBatchScanReq
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-#endif /* FEATURE_WLAN_BATCH_SCAN */
-
-
 /*=========================================================================
                              Indications
 =========================================================================*/
@@ -2934,43 +2889,6 @@ WDI_ProcessDelPeriodicTxPtrnInd
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 );
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-/**
-  @brief Process stop batch scan indications function
-         It is called when Main FSM allows it
-
-  @param  pWDICtx:         pointer to the WLAN DAL context
-          pEventData:      pointer to the event information structure
-
-  @see
-  @return Result of the function call
- */
- WDI_Status
- WDI_ProcessStopBatchScanInd
- (
-   WDI_ControlBlockType*  pWDICtx,
-   WDI_EventInfoType*     pEventData
- );
-
-/**
-  @brief This API is called to trigger batch scan results from FW
-         It is called when Main FSM allows it
-
-  @param  pWDICtx:         pointer to the WLAN DAL context
-          pEventData:      pointer to the event information structure
-
-  @see
-  @return Result of the function call
- */
- WDI_Status
- WDI_ProcessTriggerBatchScanResultInd
- (
-   WDI_ControlBlockType*  pWDICtx,
-   WDI_EventInfoType*     pEventData
- );
-
-#endif
 
 /*========================================================================
           Main DAL Control Path Response Processing API 
@@ -5185,6 +5103,7 @@ WDI_ProcessUpdateScanParamsRsp
 );
 #endif // FEATURE_WLAN_SCAN_PNO
 
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /**
  @brief Process Start Roam Candidate Lookup Request function
@@ -5218,6 +5137,7 @@ WDI_ProcessRoamScanOffloadRsp
   WDI_EventInfoType*     pEventData
 );
 #endif
+
 
 #ifdef WLAN_FEATURE_PACKET_FILTERING
 /**
@@ -5472,6 +5392,7 @@ WDI_ProcessUpdateVHTOpModeRsp
   WDI_EventInfoType*     pEventData
 );
 #endif
+
 #ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 /**
  *  @brief WDI_wdiEdTypeEncToEdTypeEnc -
@@ -5507,197 +5428,6 @@ WDI_Status WDI_ProcessLphbCfgRsp
   WDI_EventInfoType*     pEventData
 );
 #endif /* FEATURE_WLAN_LPHB */
-
-/**
- @brief Process Rate Update Indication and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData: pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessRateUpdateInd
-(
-    WDI_ControlBlockType*  pWDICtx,
-    WDI_EventInfoType*     pEventData
-);
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-/**
- @brief Process LBP Leader Request and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-*/
-WDI_Status
-WDI_ProcessLBPLeaderReq
-(
-    WDI_ControlBlockType*  pWDICtx,
-    WDI_EventInfoType*     pEventData
-);
-
-/**
-*@brief Process Leader Selection response where the firmware
-        provides a list of candidates that can be used as leaders
-        a.k.a. a receiver that can ACK multicast frames
-
- @param  pWDICtx:         pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessLBPLeaderResp
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief Process LBP Update Indication and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessLBPUpdateInd
-(
-    WDI_ControlBlockType*  pWDICtx,
-    WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief WDI_LbpUpdateInd will be called when the upper MAC
-        requests the device to enable LBP reliable multicast.
-
-        In state BUSY this request will be queued. Request won't
-        be allowed in any other state.
-
-
- @param wdiLbpUpdateIndParams:
-
-
- @see WDI_Start
- @return Result of the function call
-*/
-WDI_Status
-WDI_LbpUpdateInd
-(
-    WDI_LbpUpdateIndParams  *wdiLbpUpdateIndParams
-);
-
-/**
-*@brief Process Leader Selection response where the firmware
-        provides a list of candidates that can be used as leaders
-        a.k.a. a receiver that can ACK multicast frames
-
- @param  pWDICtx:         pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessLBPLeaderResp
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-
-/**
-*@brief Process Update Indication where the firmware
-        provides a list of candidates that can be used as leaders
-        a.k.a. a receiver that can ACK multicast frames
-
- @param  pWDICtx:         pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessLBPUpdateIndToHost
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-
-/**
- @brief Process LBP Update Indication and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessIbssPeerInfoReq
-(
-    WDI_ControlBlockType*  pWDICtx,
-    WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief Process LBP Update Indication and post it to HAL
-
- @param  pWDICtx:    pointer to the WLAN DAL context
-         pEventData:      pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessIbssPeerInfoRsp
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-/**
- @brief WDI_ProcessSetBatchScanRsp -
-     Process set batch scan response from FW
-
- @param  pWDICtx : wdi context
-         pEventData : indication data
-
- @see
- @return Result of the function call
-*/
-WDI_Status WDI_ProcessSetBatchScanRsp
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-
-/**
- @brief Process batch scan response from FW
-
- @param  pWDICtx:        pointer to the WLAN DAL context
-         pEventData:     pointer to the event information structure
-
- @see
- @return Result of the function call
-*/
-WDI_Status
-WDI_ProcessBatchScanResultInd
-(
-  WDI_ControlBlockType*  pWDICtx,
-  WDI_EventInfoType*     pEventData
-);
-
-#endif /* FEATURE_WLAN_BATCH_SCAN */
 
 #endif /*WLAN_QCT_WDI_I_H*/
 

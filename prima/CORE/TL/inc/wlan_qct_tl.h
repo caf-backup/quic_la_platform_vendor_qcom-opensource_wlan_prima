@@ -1,8 +1,43 @@
 /*
- * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- * */
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 #ifndef WLAN_QCT_WLANTL_H
 #define WLAN_QCT_WLANTL_H
@@ -16,10 +51,17 @@
 DESCRIPTION
   This file contains the external API exposed by the wlan transport layer
   module.
+<<<<<<< HEAD:CORE/TL/inc/wlan_qct_tl.h
+  
+      
+  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
+  Qualcomm Confidential and Proprietary
+=======
 
 
   Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
   Qualcomm Technologies Confidential and Proprietary
+>>>>>>> 326d6cf... wlan: remove obsolete ANI_CHIPSET_VOLANS featurization:prima/CORE/TL/inc/wlan_qct_tl.h
 ===========================================================================*/
 
 
@@ -2815,83 +2857,5 @@ WLANTL_TLDebugMessage
 (
   v_BOOL_t displaySnapshot
 );
-
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-/*=============================================================================
-  FUNCTION    WLANTL_EnableReliableMcast
-
-  DESCRIPTION
-    This function enables data path of reliable multicast transmitter in TL
-
-  DEPENDENCIES
-    Reliable multicast receive leader must be selected by FW before
-    UMAC calling this API
-
-  PARAMETERS
-
-   IN
-
-   pvosGCtx   : Pointer to VOS global context
-   pMcastAddr : Pointer to MAC ADDR of reliable multicast transmitter
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAULT:   Sanity  check on input failed
-
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-   Other return values are possible coming from the called functions.
-   Please check API for additional info.
-
-  SIDE EFFECTS
-
-==============================================================================*/
-
-VOS_STATUS
-WLANTL_EnableReliableMcast
-(
-    v_PVOID_t     pvosGCtx,
-    v_MACADDR_t   *pMcastAddr
-);
-
-
-/*=============================================================================
-  FUNCTION    WLANTL_DisableReliableMcast
-
-  DESCRIPTION
-    This function disables data path of reliable multicast transmitter in TL
-
-  DEPENDENCIES
-    HDD should have recived IOCTL to disable reliable RMC
-
-  PARAMETERS
-
-   IN
-
-   pvosGCtx   : Pointer to VOS global context
-   pMcastAddr : Pointer to MAC ADDR of reliable multicast transmitter
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAULT:   Sanity  check on input failed
-
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-   Other return values are possible coming from the called functions.
-   Please check API for additional info.
-
-  SIDE EFFECTS
-
-==============================================================================*/
-VOS_STATUS
-WLANTL_DisableReliableMcast
-(
-    v_PVOID_t     pvosGCtx,
-    v_MACADDR_t   *pMcastAddr
-);
-
-#endif /*End of WLAN_FEATURE_RELIABLE_MCAST*/
 
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

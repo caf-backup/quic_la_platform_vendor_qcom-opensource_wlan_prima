@@ -1,8 +1,43 @@
 /*
-* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 #if !defined( __SMEINTERNAL_H )
 #define __SMEINTERNAL_H
@@ -14,9 +49,9 @@
   
   \brief prototype for SME internal structures and APIs used for SME and MAC
   
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
+   Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
    
-   Qualcomm Technologies Confidential and Proprietary.
+   Qualcomm Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -98,19 +133,6 @@ typedef enum eSmeState
 #define SME_IS_START(pMac)  (SME_STATE_STOP != (pMac)->sme.state)
 #define SME_IS_READY(pMac)  (SME_STATE_READY == (pMac)->sme.state)
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-
-/* HDD Callback function */
-typedef void(*pIbssPeerInfoCb)(void *pUserData, void *infoParam);
-
-/* Peer info */
-typedef struct tagSmePeerInfoHddCbkInfo
-{
-   void *pUserData;
-   pIbssPeerInfoCb peerInfoCbk;
-}tSmePeerInfoHddCbkInfo;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 
 typedef struct tagSmeStruct
 {
@@ -131,9 +153,6 @@ typedef struct tagSmeStruct
     tDblLinkList smeScanCmdPendingList;
     //active scan command list
     tDblLinkList smeScanCmdActiveList;
-#ifdef FEATURE_CESIUM_PROPRIETARY
-    tSmePeerInfoHddCbkInfo peerInfoParams;
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 } tSmeStruct, *tpSmeStruct;
 
 

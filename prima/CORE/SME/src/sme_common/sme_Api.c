@@ -1,8 +1,43 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /**=========================================================================
 
@@ -10,9 +45,9 @@
 
   \brief Definitions for SME APIs
 
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
+   Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
 
-   Qualcomm Technologies Confidential and Proprietary.
+   Qualcomm Confidential and Proprietary.
 
   ========================================================================*/
 
@@ -1605,29 +1640,6 @@ eHalStatus sme_UnprotectedMgmtFrmInd( tHalHandle hHal,
 }
 #endif
 
-#ifdef FEATURE_CESIUM_PROPRIETARY
-eHalStatus sme_IbssPeerInfoResponseHandleer( tHalHandle hHal,
-                                      tpSirIbssGetPeerInfoRspParams pIbssPeerInfoParams)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   if (NULL == pMac)
-   {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-           "%s: pMac is null", __func__);
-       return eHAL_STATUS_FAILURE;
-   }
-   if (pMac->sme.peerInfoParams.peerInfoCbk == NULL)
-   {
-       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-           "%s: HDD callback is null", __func__);
-       return eHAL_STATUS_FAILURE;
-   }
-   pMac->sme.peerInfoParams.peerInfoCbk(pMac->sme.peerInfoParams.pUserData,
-                                        &pIbssPeerInfoParams->ibssPeerInfoRspParams);
-   return eHAL_STATUS_SUCCESS;
-}
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 /*--------------------------------------------------------------------------
 
@@ -1982,23 +1994,6 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
 
                 break;
 #endif /* FEATURE_WLAN_LPHB */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-          case eWNI_SME_IBSS_PEER_INFO_RSP:
-              if (pMsg->bodyptr)
-              {
-                  sme_IbssPeerInfoResponseHandleer(pMac, pMsg->bodyptr);
-                  vos_mem_free(pMsg->bodyptr);
-              }
-              else
-              {
-                  smsLog(pMac, LOGE,
-                         "Empty rsp message for (eWNI_SME_IBSS_PEER_INFO_RSP),"
-                         " nothing to process");
-              }
-              break ;
-
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
           default:
 
@@ -9098,146 +9093,6 @@ eHalStatus sme_DelPeriodicTxPtrn(tHalHandle hHal, tSirDelPeriodicTxPtrn
     return status;
 }
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-/* ---------------------------------------------------------------------------
-    \fn sme_EnableReliableMcast
-    \brief  Used to enable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  sessionId
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_EnableReliableMcast(tHalHandle hHal, tANI_U32 sessionId)
-{
-    eHalStatus status = eHAL_STATUS_FAILURE;
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-    smsLog(pMac, LOG1, FL("enable RMC"));
-    status = sme_AcquireGlobalLock(&pMac->sme);
-    if (HAL_STATUS_SUCCESS(status))
-    {
-        status = csrEnableRMC(pMac, sessionId);
-        sme_ReleaseGlobalLock(&pMac->sme);
-    }
-    return status;
-}
-
-/* ---------------------------------------------------------------------------
-    \fn sme_DisableReliableMcast
-    \brief  Used to disable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  sessionId
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_DisableReliableMcast(tHalHandle hHal, tANI_U32 sessionId)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   smsLog(pMac, LOG1, FL("disable RMC"));
-   status = sme_AcquireGlobalLock(&pMac->sme);
-   if (HAL_STATUS_SUCCESS(status))
-   {
-      status = csrDisableRMC(pMac, sessionId);
-      sme_ReleaseGlobalLock(&pMac->sme);
-   }
-   return status;
-}
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
-
-/* ---------------------------------------------------------------------------
-    \fn sme_SendRateUpdateInd
-    \brief  API to Update rate
-    \param  hHal - The handle returned by macOpen
-    \param  rateUpdateParams - Pointer to rate update params
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_SendRateUpdateInd(tHalHandle hHal, tSirRateUpdateInd *rateUpdateParams)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    eHalStatus status;
-    vos_msg_t msg;
-
-    if (eHAL_STATUS_SUCCESS == (status = sme_AcquireGlobalLock(&pMac->sme)))
-    {
-        msg.type     = WDA_RATE_UPDATE_IND;
-        msg.bodyptr  = rateUpdateParams;
-
-        if (!VOS_IS_STATUS_SUCCESS(vos_mq_post_message(VOS_MODULE_ID_WDA, &msg)))
-        {
-            VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,"%s: Not able "
-                       "to post WDA_SET_RMC_RATE_IND to WDA!",
-                       __func__);
-
-            sme_ReleaseGlobalLock(&pMac->sme);
-            return eHAL_STATUS_FAILURE;
-        }
-
-        sme_ReleaseGlobalLock(&pMac->sme);
-        return eHAL_STATUS_SUCCESS;
-    }
-
-    return status;
-}
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/* ---------------------------------------------------------------------------
-    \fn sme_GetIBSSPeerInfo
-    \brief  Used to disable Reliable Multicast using Leader Based Protocol
-    setting will not persist over reboots
-    \param  hHal
-    \param  ibssPeerInfoReq  multicast Group IP address
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_RequestIBSSPeerInfo(tHalHandle hHal, void *pUserData,
-                                            pIbssPeerInfoCb peerInfoCbk,
-                                            tANI_BOOLEAN allPeerInfoReqd,
-                                            tANI_U8 staIdx)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-   vos_msg_t vosMessage;
-   tSirIbssGetPeerInfoReqParams *pIbssInfoReqParams;
-
-   status = sme_AcquireGlobalLock(&pMac->sme);
-   if ( eHAL_STATUS_SUCCESS == status)
-   {
-       pMac->sme.peerInfoParams.peerInfoCbk = peerInfoCbk;
-       pMac->sme.peerInfoParams.pUserData = pUserData;
-
-       pIbssInfoReqParams = (tSirIbssGetPeerInfoReqParams *)
-                        vos_mem_malloc(sizeof(tSirIbssGetPeerInfoReqParams));
-       if (NULL == pIbssInfoReqParams)
-       {
-           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Not able to allocate memory for dhcp start", __func__);
-           sme_ReleaseGlobalLock( &pMac->sme );
-           return eHAL_STATUS_FAILURE;
-       }
-       pIbssInfoReqParams->allPeerInfoReqd = allPeerInfoReqd;
-       pIbssInfoReqParams->staIdx = staIdx;
-
-       vosMessage.type = WDA_GET_IBSS_PEER_INFO_REQ;
-       vosMessage.bodyptr = pIbssInfoReqParams;
-       vosMessage.reserved = 0;
-
-       vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
-       if ( VOS_STATUS_SUCCESS != vosStatus )
-       {
-          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
-                        "%s: Post WDA_GET_IBSS_PEER_INFO_REQ MSG failed", __func__);
-          vos_mem_free(pIbssInfoReqParams);
-          vosStatus = eHAL_STATUS_FAILURE;
-       }
-       sme_ReleaseGlobalLock( &pMac->sme );
-   }
-
-   return (vosStatus);
-}
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 void smeGetCommandQStatus( tHalHandle hHal )
 {
     tSmeCmd *pTempCmd = NULL;
@@ -9274,94 +9129,3 @@ void smeGetCommandQStatus( tHalHandle hHal )
 
     return;
 }
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-/* ---------------------------------------------------------------------------
-    \fn sme_SetBatchScanReq
-    \brief  API to set batch scan request in FW
-    \param  hHal - The handle returned by macOpen.
-    \param  pRequest -  Pointer to the batch request.
-    \param  sessionId - session ID
-    \param  callbackRoutine - HDD callback which needs to be invoked after
-            getting set batch scan response from FW
-    \param  callbackContext - pAdapter context
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_SetBatchScanReq
-(
-    tHalHandle hHal, tSirSetBatchScanReq *pRequest, tANI_U8 sessionId,
-    void (*callbackRoutine) (void *callbackCtx, tSirSetBatchScanRsp *pRsp),
-    void *callbackContext
-)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    eHalStatus status;
-
-    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme )))
-    {
-       status = pmcSetBatchScanReq(hHal, pRequest, sessionId, callbackRoutine,
-                  callbackContext);
-       sme_ReleaseGlobalLock( &pMac->sme );
-    }
-
-    return status;
-}
-
-/* ---------------------------------------------------------------------------
-    \fn sme_TriggerBatchScanResultInd
-    \brief  API to trigger batch scan result indications from FW
-    \param  hHal - The handle returned by macOpen.
-    \param  pRequest -  Pointer to get batch request.
-    \param  sessionId - session ID
-    \param  callbackRoutine - HDD callback which needs to be invoked after
-            getting batch scan result indication from FW
-    \param  callbackContext - pAdapter context
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_TriggerBatchScanResultInd
-(
-    tHalHandle hHal, tSirTriggerBatchScanResultInd *pRequest, tANI_U8 sessionId,
-    void (*callbackRoutine) (void *callbackCtx, void *pRsp),
-    void *callbackContext
-)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    eHalStatus status;
-
-    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme )))
-    {
-       status = pmcTriggerBatchScanResultInd(hHal, pRequest, sessionId,
-                   callbackRoutine, callbackContext);
-       sme_ReleaseGlobalLock( &pMac->sme );
-    }
-
-    return status;
-}
-
-
-/* ---------------------------------------------------------------------------
-    \fn sme_StopBatchScanInd
-    \brief  API to stop batch scan request in FW
-    \param  hHal - The handle returned by macOpen.
-    \param  pRequest -  Pointer to the batch request.
-    \param  sessionId - session ID
-    \return eHalStatus
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_StopBatchScanInd
-(
-    tHalHandle hHal, tSirStopBatchScanInd *pRequest, tANI_U8 sessionId
-)
-{
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    eHalStatus status;
-
-    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme )))
-    {
-       status = pmcStopBatchScanInd(hHal, pRequest, sessionId);
-       sme_ReleaseGlobalLock( &pMac->sme );
-    }
-
-    return status;
-}
-
-#endif

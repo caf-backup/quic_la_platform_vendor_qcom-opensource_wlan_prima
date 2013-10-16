@@ -1,8 +1,44 @@
 /*
- * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved. 
- * Qualcomm Atheros Confidential and Proprietary. 
- * */
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
 /**=========================================================================
   
   \file  limSession.c
@@ -11,9 +47,9 @@
 
   \author Sunit Bhatia
   
-   Copyright 2008 (c) Qualcomm Technologies, Inc.  All Rights Reserved.
+   Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
    
-   Qualcomm Technologies Confidential and Proprietary.
+   Qualcomm Confidential and Proprietary.
   
   ========================================================================*/
 
@@ -79,7 +115,7 @@ void peInitBeaconParams(tpAniSirGlobal pMac, tpPESession psessionEntry)
   \sa
   
   --------------------------------------------------------------------------*/
-tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid, tANI_U8* sessionId, tANI_U16 numSta)
+tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessionId, tANI_U16 numSta)
 {
     tANI_U8 i;
     for(i =0; i < pMac->lim.maxBssId; i++)
@@ -243,7 +279,7 @@ tpPESession peFindSessionByBssIdx(tpAniSirGlobal pMac,  tANI_U8 bssIdx)
   
   \sa
   --------------------------------------------------------------------------*/
- tpPESession peFindSessionBySessionId(tpAniSirGlobal pMac, tANI_U8 sessionId)
+ tpPESession peFindSessionBySessionId(tpAniSirGlobal pMac , tANI_U8 sessionId)
 {
     if(sessionId >=  pMac->lim.maxBssId)
     {
@@ -331,68 +367,68 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
         }
     }
     
-    if (psessionEntry->pLimStartBssReq != NULL)
+    if(psessionEntry->pLimStartBssReq != NULL)
     {
         vos_mem_free( psessionEntry->pLimStartBssReq );
         psessionEntry->pLimStartBssReq = NULL;
     }
 
-    if (psessionEntry->pLimJoinReq != NULL)
+    if(psessionEntry->pLimJoinReq != NULL)
     {
         vos_mem_free( psessionEntry->pLimJoinReq );
         psessionEntry->pLimJoinReq = NULL;
     }
 
-    if (psessionEntry->pLimReAssocReq != NULL)
+    if(psessionEntry->pLimReAssocReq != NULL)
     {
         vos_mem_free( psessionEntry->pLimReAssocReq );
         psessionEntry->pLimReAssocReq = NULL;
     }
 
-    if (psessionEntry->pLimMlmJoinReq != NULL)
+    if(psessionEntry->pLimMlmJoinReq != NULL)
     {
         vos_mem_free( psessionEntry->pLimMlmJoinReq );
         psessionEntry->pLimMlmJoinReq = NULL;
     }
 
-    if (psessionEntry->dph.dphHashTable.pHashTable != NULL)
+    if(psessionEntry->dph.dphHashTable.pHashTable != NULL)
     {
         vos_mem_free(psessionEntry->dph.dphHashTable.pHashTable);
         psessionEntry->dph.dphHashTable.pHashTable = NULL;
     }
 
-    if (psessionEntry->dph.dphHashTable.pDphNodeArray != NULL)
+    if(psessionEntry->dph.dphHashTable.pDphNodeArray != NULL)
     {
         vos_mem_free(psessionEntry->dph.dphHashTable.pDphNodeArray);
         psessionEntry->dph.dphHashTable.pDphNodeArray = NULL;
     }
 
-    if (psessionEntry->gpLimPeerIdxpool != NULL)
+    if(psessionEntry->gpLimPeerIdxpool != NULL)
     {
         vos_mem_free(psessionEntry->gpLimPeerIdxpool);
         psessionEntry->gpLimPeerIdxpool = NULL;
     }
 
-    if (psessionEntry->beacon != NULL)
+    if(psessionEntry->beacon != NULL)
     {
         vos_mem_free( psessionEntry->beacon);
         psessionEntry->beacon = NULL;
     }
 
-    if (psessionEntry->assocReq != NULL)
+    if(psessionEntry->assocReq != NULL)
     {
         vos_mem_free( psessionEntry->assocReq);
         psessionEntry->assocReq = NULL;
     }
 
-    if (psessionEntry->assocRsp != NULL)
+    if(psessionEntry->assocRsp != NULL)
     {
         vos_mem_free( psessionEntry->assocRsp);
         psessionEntry->assocRsp = NULL;
     }
 
 
-    if (psessionEntry->parsedAssocReq != NULL)
+    if(psessionEntry->parsedAssocReq != NULL)
     {
         // Cleanup the individual allocation first
         for (i=0; i < psessionEntry->dph.dphHashTable.size; i++)

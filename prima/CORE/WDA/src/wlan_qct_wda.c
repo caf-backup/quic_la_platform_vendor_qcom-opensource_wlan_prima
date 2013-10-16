@@ -1,8 +1,43 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /*===========================================================================
                        W L A N _ Q C T _ WDA . C
@@ -13,9 +48,9 @@
   DEPENDENCIES:
   Are listed for each API below.
 
-  Copyright (c) 2010-2011 Qualcomm Technologies, Inc.
+  Copyright (c) 2010-2011 QUALCOMM Incorporated.
   All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
+  Qualcomm Confidential and Proprietary
 ===========================================================================*/
 /*===========================================================================
                       EDIT HISTORY FOR FILE
@@ -195,12 +230,6 @@ VOS_STATUS WDA_ProcessUpdateOpMode(tWDA_CbContext *pWDA,
 VOS_STATUS WDA_ProcessLPHBConfReq(tWDA_CbContext *pWDA,
                                   tSirLPHBReq *pData);
 #endif /* FEATURE_WLAN_LPHB */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-void WDA_IBSSPeerInfoRequestHandler(v_PVOID_t pVosContext,
-                                                v_PVOID_t pData);
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
 /*
  * FUNCTION: WDA_open
  * Allocate the WDA context 
@@ -10510,290 +10539,6 @@ VOS_STATUS WDA_ProcessDelPeriodicTxPtrnInd(tWDA_CbContext *pWDA,
 }
 
 /*
- * FUNCTION: WDA_ProcessRateUpdateInd
- *
- */
-VOS_STATUS WDA_ProcessRateUpdateInd(tWDA_CbContext *pWDA,
-                               tSirRateUpdateInd *pRateUpdateParams)
-{
-   WDI_Status wdiStatus;
-   WDI_RateUpdateIndParams rateUpdateParams;
-
-   vos_mem_copy(rateUpdateParams.bssid,
-            pRateUpdateParams->bssid, sizeof(tSirMacAddr));
-
-   rateUpdateParams.ucastDataRateTxFlag =
-                     pRateUpdateParams->ucastDataRateTxFlag;
-   rateUpdateParams.reliableMcastDataRateTxFlag =
-                     pRateUpdateParams->reliableMcastDataRateTxFlag;
-   rateUpdateParams.mcastDataRate24GHzTxFlag =
-                     pRateUpdateParams->mcastDataRate24GHzTxFlag;
-   rateUpdateParams.mcastDataRate5GHzTxFlag =
-                     pRateUpdateParams->mcastDataRate5GHzTxFlag;
-
-   rateUpdateParams.ucastDataRate = pRateUpdateParams->ucastDataRate;
-   rateUpdateParams.reliableMcastDataRate =
-                                 pRateUpdateParams->reliableMcastDataRate;
-   rateUpdateParams.mcastDataRate24GHz = pRateUpdateParams->mcastDataRate24GHz;
-   rateUpdateParams.mcastDataRate5GHz = pRateUpdateParams->mcastDataRate5GHz;
-
-   rateUpdateParams.wdiReqStatusCB = WDA_WdiIndicationCallback;
-   rateUpdateParams.pUserData = pWDA;
-
-   wdiStatus = WDI_RateUpdateInd(&rateUpdateParams);
-
-   if (WDI_STATUS_PENDING == wdiStatus)
-   {
-      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-                "Pending received for %s:%d", __func__, __LINE__ );
-   }
-   else if (WDI_STATUS_SUCCESS_SYNC != wdiStatus)
-   {
-      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "Failure in %s:%d", __func__, __LINE__ );
-   }
-
-   vos_mem_free(pRateUpdateParams);
-
-   return CONVERT_WDI2VOS_STATUS(wdiStatus);
-}
-
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-/*
- * FUNCTION: WDA_ProcessStopBatchScanInd
- *
- * DESCRIPTION: This function sends stop batch scan inidcation message to WDI
- *
- * PARAM:
- * pWDA: pointer to WDA context
- * pReq: pointer to stop batch scan request
- */
-VOS_STATUS WDA_ProcessStopBatchScanInd(tWDA_CbContext *pWDA,
-                               tSirStopBatchScanInd *pReq)
-{
-   WDI_Status wdiStatus;
-   WDI_StopBatchScanIndType wdiReq;
-
-   wdiReq.param = pReq->param;
-
-   wdiStatus = WDI_StopBatchScanInd(&wdiReq);
-
-   if (WDI_STATUS_SUCCESS_SYNC != wdiStatus)
-   {
-      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                "Stop batch scan ind failed %s:%d", __func__, wdiStatus);
-   }
-
-   vos_mem_free(pReq);
-
-   return CONVERT_WDI2VOS_STATUS(wdiStatus);
-}
-/*==========================================================================
-  FUNCTION WDA_ProcessTriggerBatchScanResultInd
-
-  DESCRIPTION
-    API to pull batch scan result from FW
-
-  PARAMETERS
-    pWDA: Pointer to WDA context
-    pGetBatchScanReq: Pointer to get batch scan result indication
-
-  RETURN VALUE
-    NONE
-
-===========================================================================*/
-VOS_STATUS WDA_ProcessTriggerBatchScanResultInd(tWDA_CbContext *pWDA,
-       tSirTriggerBatchScanResultInd *pReq)
-{
-   WDI_Status wdiStatus;
-   WDI_TriggerBatchScanResultIndType wdiReq;
-
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
-                                          "------> %s " ,__func__);
-
-   wdiReq.param = pReq->param;
-
-   wdiStatus = WDI_TriggerBatchScanResultInd(&wdiReq);
-
-   if (WDI_STATUS_SUCCESS_SYNC != wdiStatus)
-   {
-      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-          "Trigger batch scan result ind failed %s:%d",
-          __func__, wdiStatus);
-   }
-
-   vos_mem_free(pReq);
-
-   return CONVERT_WDI2VOS_STATUS(wdiStatus);
-}
-
-/*==========================================================================
-  FUNCTION WDA_SetBatchScanRespCallback
-
-  DESCRIPTION
-    API to process set batch scan response from FW
-
-  PARAMETERS
-    pRsp: Pointer to set batch scan response
-    pUserData: Pointer to user data
-
-  RETURN VALUE
-    NONE
-
-===========================================================================*/
-void WDA_SetBatchScanRespCallback
-(
-    WDI_SetBatchScanRspType *pRsp,
-    void* pUserData
-)
-{
-   tSirSetBatchScanRsp *pHddSetBatchScanRsp;
-   tpAniSirGlobal pMac;
-   void *pCallbackContext;
-   tWDA_CbContext *pWDA = NULL ;
-   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
-
-
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
-                                          "<------ %s " ,__func__);
-   if (NULL == pWdaParams)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "%s: pWdaParams received NULL", __func__);
-      VOS_ASSERT(0) ;
-      return ;
-   }
-
-   /*extract WDA context*/
-   pWDA = pWdaParams->pWdaContext;
-   if (NULL == pWDA)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-          "%s:pWDA is NULL can't invole HDD callback",
-           __func__);
-      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-      vos_mem_free(pWdaParams->wdaMsgParam);
-      vos_mem_free(pWdaParams);
-      VOS_ASSERT(0);
-      return;
-   }
-
-   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-   vos_mem_free(pWdaParams->wdaMsgParam);
-   vos_mem_free(pWdaParams);
-
-   pMac = (tpAniSirGlobal )VOS_GET_MAC_CTXT(pWDA->pVosContext);
-   if (NULL == pMac)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-          "%s:pMac is NULL", __func__);
-      VOS_ASSERT(0);
-      return;
-   }
-
-   pHddSetBatchScanRsp =
-     (tSirSetBatchScanRsp *)vos_mem_malloc(sizeof(tSirSetBatchScanRsp));
-   if (NULL == pHddSetBatchScanRsp)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-          "%s: VOS MEM Alloc Failure can't invoke HDD callback", __func__);
-      VOS_ASSERT(0);
-      return;
-   }
-
-   pHddSetBatchScanRsp->nScansToBatch = pRsp->nScansToBatch;
-
-   pCallbackContext = pMac->pmc.setBatchScanReqCallbackContext;
-   /*call hdd callback with set batch scan response data*/
-   if(pMac->pmc.setBatchScanReqCallback)
-   {
-       pMac->pmc.setBatchScanReqCallback(pCallbackContext, pHddSetBatchScanRsp);
-   }
-   else
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-          "%s:HDD callback is null", __func__);
-      VOS_ASSERT(0);
-   }
-
-   vos_mem_free(pHddSetBatchScanRsp);
-   return ;
-}
-
-/*==========================================================================
-  FUNCTION WDA_ProcessSetBatchScanReq
-
-  DESCRIPTION
-    API to send set batch scan request to WDI
-
-  PARAMETERS
-    pWDA: Pointer to WDA context
-    pSetBatchScanReq: Pointer to set batch scan req
-
-  RETURN VALUE
-    NONE
-
-===========================================================================*/
-VOS_STATUS WDA_ProcessSetBatchScanReq(tWDA_CbContext *pWDA,
-       tSirSetBatchScanReq *pSetBatchScanReq)
-{
-   WDI_Status status;
-   tWDA_ReqParams *pWdaParams ;
-   WDI_SetBatchScanReqType *pWdiSetBatchScanReq;
-
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
-                                          "------> %s " ,__func__);
-
-   pWdiSetBatchScanReq =
-     (WDI_SetBatchScanReqType *)vos_mem_malloc(sizeof(WDI_SetBatchScanReqType));
-   if (NULL == pWdiSetBatchScanReq)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __func__);
-      vos_mem_free(pSetBatchScanReq);
-      VOS_ASSERT(0);
-      return VOS_STATUS_E_NOMEM;
-   }
-
-   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams));
-   if (NULL == pWdaParams)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __func__);
-      VOS_ASSERT(0);
-      vos_mem_free(pSetBatchScanReq);
-      vos_mem_free(pWdiSetBatchScanReq);
-      return VOS_STATUS_E_NOMEM;
-   }
-
-   pWdiSetBatchScanReq->scanFrequency = pSetBatchScanReq->scanFrequency;
-   pWdiSetBatchScanReq->numberOfScansToBatch =
-               pSetBatchScanReq->numberOfScansToBatch;
-   pWdiSetBatchScanReq->bestNetwork = pSetBatchScanReq->bestNetwork;
-   pWdiSetBatchScanReq->rfBand = pSetBatchScanReq->rfBand;
-   pWdiSetBatchScanReq->rtt = pSetBatchScanReq->rtt;
-
-   pWdaParams->wdaWdiApiMsgParam = pWdiSetBatchScanReq;
-   pWdaParams->pWdaContext = pWDA;
-   pWdaParams->wdaMsgParam = pSetBatchScanReq;
-
-   status = WDI_SetBatchScanReq(pWdiSetBatchScanReq, pWdaParams,
-                (WDI_SetBatchScanCb)WDA_SetBatchScanRespCallback);
-   if (IS_WDI_STATUS_FAILURE(status))
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "Failure in Set Batch Scan REQ WDI API, free all the memory " );
-      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-      vos_mem_free(pWdaParams->wdaMsgParam);
-      vos_mem_free(pWdaParams);
-   }
-   return CONVERT_WDI2VOS_STATUS(status);
-}
-
-#endif
-
-/*
  * -------------------------------------------------------------------------
  * DATA interface with WDI for Mgmt Frames
  * ------------------------------------------------------------------------- 
@@ -11150,363 +10895,6 @@ static VOS_STATUS WDA_ProcessDHCPStartInd (tWDA_CbContext *pWDA,
    vos_mem_free(dhcpStopInd);
    return CONVERT_WDI2VOS_STATUS(status) ;
  }
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-/*
- * FUNCTION: WDA_RMCLeaderRspCallback
- * Send LBP Leader Response back to PE
- */
-void
-WDA_RMCLeaderRspCallback(WDI_LbpRspParamsType *wdiLbpResponse, void *pUserData)
-{
-    tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
-    tWDA_CbContext *pWDA = pWdaParams->pWdaContext;
-
-    switch (wdiLbpResponse->cmd)
-    {
-        case eWDI_BECOME_LEADER_CMD :
-        {
-            tSirRmcBecomeLeaderInd *pRmcBecomeLeaderInd;
-
-            pRmcBecomeLeaderInd = (tSirRmcBecomeLeaderInd *)
-                                   vos_mem_malloc(sizeof(*pRmcBecomeLeaderInd));
-
-            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-                        "Received eWDI_BECOME_LEADER_CMD from WDI");
-
-            pRmcBecomeLeaderInd->status = wdiLbpResponse->status;
-
-            /* Copy the mcast transmitter which should be us */
-            vos_mem_copy(pRmcBecomeLeaderInd->mcastTransmitter,
-                          wdiLbpResponse->mcastTransmitter,
-                          sizeof(tSirMacAddr));
-            /* Copy the mcast group address */
-            vos_mem_copy(pRmcBecomeLeaderInd->mcastGroup,
-                          wdiLbpResponse->mcastGroup,
-                          sizeof(tSirMacAddr));
-
-            WDA_SendMsg(pWDA, WDA_RMC_BECOME_LEADER,
-                               (void *)pRmcBecomeLeaderInd, 0) ;
-            break;
-        }
-        case eWDI_SUGGEST_LEADER_CMD :
-        {
-            tSirRmcLeaderSelectInd *pRmcLeaderSelectInd;
-
-            pRmcLeaderSelectInd = (tSirRmcLeaderSelectInd *)
-                                   vos_mem_malloc(sizeof(tSirRmcLeaderSelectInd));
-
-            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-                              "Received eWDI_SUGGEST_LEADER_CMD from WDI");
-
-            pRmcLeaderSelectInd->status = wdiLbpResponse->status;
-
-            /* Copy the mcast transmitter which should be us */
-            vos_mem_copy(pRmcLeaderSelectInd->mcastTransmitter,
-                        wdiLbpResponse->mcastTransmitter,
-                        sizeof(tSirMacAddr));
-            /* Copy the mcast group address */
-            vos_mem_copy(pRmcLeaderSelectInd->mcastGroup,
-                        wdiLbpResponse->mcastGroup,
-                        sizeof(tSirMacAddr));
-            /* Copy the candidate leader list */
-            vos_mem_copy(pRmcLeaderSelectInd->leader,
-                        wdiLbpResponse->leader,
-                        sizeof(pRmcLeaderSelectInd->leader));
-
-            WDA_SendMsg(pWDA, WDA_RMC_LEADER_SELECT_RESP,
-                                       (void *)pRmcLeaderSelectInd, 0) ;
-            break;
-        }
-    }
-
-    /* free the config structure */
-    if (pWdaParams->wdaWdiApiMsgParam != NULL)
-    {
-        vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-    }
-    vos_mem_free(pWdaParams->wdaMsgParam);
-    vos_mem_free(pWdaParams);
-
-}
-
-/*
- * FUNCTION: WDA_RMCLeaderReqCallback
- * Free memory.
- * Invoked when RMCLeader REQ failed in WDI and no RSP callback is generated.
- */
-void WDA_RMCLeaderReqCallback(WDI_Status wdiStatus, void* pUserData)
-{
-    tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
-
-    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "<------ %s, wdiStatus: %d", __func__, wdiStatus);
-
-    if (NULL == pWdaParams)
-    {
-        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: pWdaParams received NULL", __func__);
-        VOS_ASSERT(0);
-        return;
-    }
-
-    if (IS_WDI_STATUS_FAILURE(wdiStatus))
-    {
-        vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-        vos_mem_free(pWdaParams->wdaMsgParam);
-        vos_mem_free(pWdaParams);
-    }
-
-   return;
-}
-
-/*
- * FUNCTION: WDA_ProcessRMCLeaderReq
- * Forward LBP Leader Request to WDI
- */
-static VOS_STATUS
-WDA_ProcessRMCLeaderReq(tWDA_CbContext *pWDA,
-                        tSirRmcLeaderReq *lbpLeaderReq)
-{
-    WDI_Status status;
-    WDI_LbpLeaderReqParams *wdiLeaderReq;
-    tWDA_ReqParams *pWdaParams;
-
-    wdiLeaderReq = (WDI_LbpLeaderReqParams *)
-                        vos_mem_malloc(sizeof(*wdiLeaderReq));
-
-    if (NULL == wdiLeaderReq)
-    {
-        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                 "%s: VOS MEM Alloc Failure", __func__);
-        VOS_ASSERT(0);
-        vos_mem_free(lbpLeaderReq);
-        return VOS_STATUS_E_NOMEM;
-    }
-
-    pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams));
-    if (NULL == pWdaParams)
-    {
-        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __func__);
-        VOS_ASSERT(0);
-        vos_mem_free(lbpLeaderReq);
-        vos_mem_free(wdiLeaderReq);
-        return VOS_STATUS_E_NOMEM;
-    }
-
-    pWdaParams->wdaWdiApiMsgParam = (v_PVOID_t *)wdiLeaderReq;
-    /* Store param pointer as passed in by caller */
-    pWdaParams->wdaMsgParam = lbpLeaderReq;
-    pWdaParams->pWdaContext = pWDA;
-
-    wdiLeaderReq->cmd = lbpLeaderReq->cmd;
-
-    vos_mem_copy(wdiLeaderReq->mcastTransmitter,
-            lbpLeaderReq->mcastTransmitter, sizeof(tSirMacAddr));
-    vos_mem_copy(wdiLeaderReq->mcastGroup,
-            lbpLeaderReq->mcastGroup, sizeof(tSirMacAddr));
-    vos_mem_copy(wdiLeaderReq->blacklist,
-            lbpLeaderReq->blacklist, sizeof(wdiLeaderReq->blacklist));
-
-    wdiLeaderReq->wdiReqStatusCB = WDA_RMCLeaderReqCallback;
-
-    status = WDI_LbpLeaderReq(wdiLeaderReq,
-                 (WDI_LbpLeaderRspCb)WDA_RMCLeaderRspCallback,
-                 (void *)pWdaParams);
-    if (IS_WDI_STATUS_FAILURE(status))
-    {
-        vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-        vos_mem_free(pWdaParams->wdaMsgParam);
-        vos_mem_free(pWdaParams) ;
-        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                   "LBP Leader Request failed");
-    }
-    return CONVERT_WDI2VOS_STATUS(status) ;
-}
-
-/*
- * FUNCTION: WDA_ProcessRMCUpdateInd
- * Forward LBP Update Indication to WDI
-*/
-static VOS_STATUS
-WDA_ProcessRMCUpdateInd(tWDA_CbContext *pWDA,
-                         tSirRmcUpdateInd *lbpUpdateInd)
-{
-    WDI_Status status;
-    WDI_LbpUpdateIndParams wdiUpdateInd;
-
-    /* Copy the paramters for Update_Ind */
-
-    wdiUpdateInd.indication = lbpUpdateInd->indication;
-    wdiUpdateInd.role = lbpUpdateInd->role;
-
-    vos_mem_copy(wdiUpdateInd.mcastTransmitter,
-            lbpUpdateInd->mcastTransmitter, sizeof(tSirMacAddr));
-
-    vos_mem_copy(wdiUpdateInd.mcastGroup,
-            lbpUpdateInd->mcastGroup, sizeof(tSirMacAddr));
-
-    vos_mem_copy(wdiUpdateInd.mcastLeader,
-            lbpUpdateInd->mcastLeader, sizeof(tSirMacAddr));
-
-    wdiUpdateInd.wdiReqStatusCB = WDA_WdiIndicationCallback;
-    wdiUpdateInd.pUserData = pWDA;
-    status = WDI_LbpUpdateInd(&wdiUpdateInd);
-
-    if (WDI_STATUS_PENDING == status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-                 "Pending received for %s:%d ",__func__,__LINE__ );
-    }
-    else if (WDI_STATUS_SUCCESS_SYNC != status)
-    {
-       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-               "Failure in %s:%d ",__func__,__LINE__ );
-    }
-
-    vos_mem_free(lbpUpdateInd);
-
-    return CONVERT_WDI2VOS_STATUS(status) ;
-}
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-void WDA_GetIbssPeerInfoRspCallback(WDI_IbssPeerInfoRspParams *peerInfoRspParams
-                                    ,void* pUserData)
-{
-
-   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
-   WDI_IbssPeerInfoParams *pIbssPeerInfoParams =
-       (WDI_IbssPeerInfoParams *)peerInfoRspParams->wdiPeerInfoParams;
-   tWDA_CbContext *pWDA;
-   tpSirIbssGetPeerInfoRspParams pIbssGetPeerInfoRsp;
-   vos_msg_t vosMsg;
-   v_U32_t wdaCnt = 0;
-
-   pIbssGetPeerInfoRsp =
-                  vos_mem_malloc(sizeof(tSirIbssGetPeerInfoRspParams));
-
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-                                          "<------ %s " ,__func__);
-   VOS_ASSERT(NULL != pWdaParams);
-
-   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext ;
-
-
-   if (peerInfoRspParams->wdiNumPeers > 32)
-   {
-      pr_info("%s] Number of peers is more than 32, returning\n", __func__);
-      /* free the mem and return */
-      vos_mem_free((v_VOID_t *) pIbssGetPeerInfoRsp);
-      if(NULL != pWdaParams)
-      {
-         if(pWdaParams->wdaMsgParam)
-            vos_mem_free(pWdaParams->wdaMsgParam);
-         if(pWdaParams->wdaWdiApiMsgParam)
-            vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-         vos_mem_free(pWdaParams);
-      }
-      return;
-   }
-
-   /* Message Header */
-   pIbssGetPeerInfoRsp->mesgType = eWNI_SME_IBSS_PEER_INFO_RSP;
-   pIbssGetPeerInfoRsp->mesgLen = sizeof(tSirIbssGetPeerInfoRspParams);
-   pIbssGetPeerInfoRsp->ibssPeerInfoRspParams.status = peerInfoRspParams->wdiStatus;
-   pIbssGetPeerInfoRsp->ibssPeerInfoRspParams.numPeers = peerInfoRspParams->wdiNumPeers;
-
-   for (wdaCnt = 0; wdaCnt < peerInfoRspParams->wdiNumPeers; wdaCnt++)
-   {
-      WDI_IbssPeerInfoParams *pWdiTmp = &pIbssPeerInfoParams[wdaCnt];
-      tSirIbssPeerInfoParams *pSmeTmp =
-          &pIbssGetPeerInfoRsp->ibssPeerInfoRspParams.peerInfoParams[wdaCnt];
-
-      pSmeTmp->staIdx = pWdiTmp->wdiStaIdx;
-      pSmeTmp->mcsIndex = pWdiTmp->wdiMcsIndex;
-      pSmeTmp->rssi = pWdiTmp->wdiRssi;
-      pSmeTmp->txRate = pWdiTmp->wdiTxRate;
-      pSmeTmp->txRateFlags = pWdiTmp->wdiTxRateFlags;
-   }
-
-   /* VOS message wrapper */
-   vosMsg.type = eWNI_SME_IBSS_PEER_INFO_RSP;
-   vosMsg.bodyptr = (void *)pIbssGetPeerInfoRsp;
-   vosMsg.bodyval = 0;
-
-   if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME, (vos_msg_t*)&vosMsg))
-   {
-      /* free the mem and return */
-      vos_mem_free((v_VOID_t *) pIbssGetPeerInfoRsp);
-   }
-
-   if(NULL != pWdaParams)
-   {
-      if(pWdaParams->wdaMsgParam)
-         vos_mem_free(pWdaParams->wdaMsgParam);
-      if(pWdaParams->wdaWdiApiMsgParam)
-         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-      vos_mem_free(pWdaParams);
-   }
-
-   return;
-}
-
-static VOS_STATUS
-WDA_ProcessIbssPeerInfoReq(tWDA_CbContext *pWDA,
-                      tSirIbssGetPeerInfoReqParams *ibssPeerInfoReqParams)
-{
-   WDI_Status status;
-   WDI_IbssPeerInfoReqType *wdiPeerInfoReq;
-   tWDA_ReqParams *pWdaParams;
-
-   wdiPeerInfoReq = (WDI_IbssPeerInfoReqType *)
-                    vos_mem_malloc(sizeof(WDI_IbssPeerInfoReqType));
-   if (NULL == wdiPeerInfoReq)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-               "%s: VOS MEM Alloc Failure", __func__);
-      VOS_ASSERT(0);
-      vos_mem_free(ibssPeerInfoReqParams);
-      return VOS_STATUS_E_NOMEM;
-   }
-
-   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams));
-   if (NULL == pWdaParams)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                         "%s: VOS MEM Alloc Failure", __func__);
-      VOS_ASSERT(0);
-      vos_mem_free(wdiPeerInfoReq);
-      vos_mem_free(ibssPeerInfoReqParams);
-      return VOS_STATUS_E_NOMEM;
-   }
-
-   pWdaParams->wdaWdiApiMsgParam = (v_PVOID_t *)wdiPeerInfoReq;
-   /* Store param pointer as passed in by caller */
-   pWdaParams->wdaMsgParam = ibssPeerInfoReqParams;
-   pWdaParams->pWdaContext = pWDA;
-
-   wdiPeerInfoReq->wdiAllPeerInfoReqd =
-                 ibssPeerInfoReqParams->allPeerInfoReqd;
-   wdiPeerInfoReq->wdiStaIdx =
-                 ibssPeerInfoReqParams->staIdx;
-
-   status = WDI_IbssPeerInfoReq(wdiPeerInfoReq,
-               (WDI_IbssPeerInfoReqCb)WDA_GetIbssPeerInfoRspCallback,
-               (void *)pWdaParams);
-   if (IS_WDI_STATUS_FAILURE(status))
-   {
-      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-      vos_mem_free(pWdaParams->wdaMsgParam);
-      vos_mem_free(pWdaParams) ;
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                 "IBSS Peer Info Request failed");
-   }
-   return CONVERT_WDI2VOS_STATUS(status) ;
-
-}
-#endif /* FEATURE_CESIUM_PROPRIETARY */
 
 /*
  * FUNCTION: WDA_McProcessMsg
@@ -12170,53 +11558,6 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             (tSirDelPeriodicTxPtrn *)pMsg->bodyptr);
          break;
       }
-      case WDA_RATE_UPDATE_IND:
-      {
-          WDA_ProcessRateUpdateInd(pWDA, (tSirRateUpdateInd *)pMsg->bodyptr);
-          break;
-      }
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-      case WDA_RMC_LEADER_REQ:
-      {
-          WDA_ProcessRMCLeaderReq(pWDA, (tSirRmcLeaderReq *)pMsg->bodyptr);
-          break;
-      }
-      case WDA_RMC_UPDATE_IND:
-      {
-          WDA_ProcessRMCUpdateInd(pWDA, (tSirRmcUpdateInd *)pMsg->bodyptr);
-          break;
-      }
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-      case WDA_GET_IBSS_PEER_INFO_REQ:
-      {
-          WDA_ProcessIbssPeerInfoReq(pWDA,
-                            (tSirIbssGetPeerInfoReqParams *)pMsg->bodyptr);
-          break;
-      }
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-      case WDA_SET_BATCH_SCAN_REQ:
-      {
-          WDA_ProcessSetBatchScanReq(pWDA,
-            (tSirSetBatchScanReq *)pMsg->bodyptr);
-          break;
-      }
-      case WDA_TRIGGER_BATCH_SCAN_RESULT_IND:
-      {
-          WDA_ProcessTriggerBatchScanResultInd(pWDA,
-            (tSirTriggerBatchScanResultInd *)pMsg->bodyptr);
-          break;
-      }
-      case WDA_STOP_BATCH_SCAN_IND:
-      {
-          WDA_ProcessStopBatchScanInd(pWDA,
-            (tSirStopBatchScanInd *)pMsg->bodyptr);
-          break;
-      }
-#endif
 
       default:
       {
@@ -12753,99 +12094,6 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          WDA_SendMsg(pWDA, WDA_IBSS_PEER_INACTIVITY_IND, (void *)pIbssInd, 0) ;
          break;
       }
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-      case WDI_LBP_LEADER_PICK_NEW :
-      {
-         tSirRmcUpdateInd   *pRmcUpdateInd =
-            (tSirRmcUpdateInd *)vos_mem_malloc(sizeof(tSirRmcUpdateInd));
-
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-                              "Received WDI_LBP_UPDATE_IND from WDI");
-
-         pRmcUpdateInd->indication =
-           wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.indication;
-         pRmcUpdateInd->role =
-           wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.role;
-
-         /* Copy the mcast transmitter which should be us */
-         vos_mem_copy(pRmcUpdateInd->mcastTransmitter,
-              wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd. \
-              mcastTransmitter,
-              sizeof(tSirMacAddr));
-         /* Copy the mcast group address */
-         vos_mem_copy(pRmcUpdateInd->mcastGroup,
-              wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.mcastGroup,
-              sizeof(tSirMacAddr));
-         /* Copy the mcast leader address */
-         vos_mem_copy(pRmcUpdateInd->mcastLeader,
-              wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.mcastLeader,
-              sizeof(tSirMacAddr));
-         /* Copy the candidate leader list */
-         vos_mem_copy(pRmcUpdateInd->leader,
-              wdiLowLevelInd->wdiIndicationData.wdiLbpPickNewLeaderInd.leader,
-              sizeof(pRmcUpdateInd->leader));
-
-         WDA_SendMsg(pWDA, WDA_RMC_UPDATE_IND, (void *)pRmcUpdateInd, 0) ;
-         break;
-      }
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-     case  WDI_BATCH_SCAN_RESULT_IND:
-     {
-         void *pBatchScanResult;
-         void *pCallbackContext;
-         tpAniSirGlobal pMac;
-
-         VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "Received WDI_BATCHSCAN_RESULT_IND from FW");
-
-         /*sanity check*/
-         if(NULL == pWDA)
-         {
-            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "%s:pWDA is NULL", __func__);
-            VOS_ASSERT(0);
-            return;
-         }
-
-         pBatchScanResult =
-            (void *)wdiLowLevelInd->wdiIndicationData.pBatchScanResult;
-         if (NULL == pBatchScanResult)
-         {
-            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "%s:Batch scan result from FW is null can't invoke HDD callback",
-              __func__);
-            VOS_ASSERT(0);
-            return;
-         }
-
-         pMac = (tpAniSirGlobal )VOS_GET_MAC_CTXT(pWDA->pVosContext);
-         if (NULL == pMac)
-         {
-            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "%s:pMac is NULL", __func__);
-            VOS_ASSERT(0);
-            return;
-         }
-
-         pCallbackContext = pMac->pmc.batchScanResultCallbackContext;
-         /*call hdd callback with set batch scan response data*/
-         if(pMac->pmc.batchScanResultCallback)
-         {
-            pMac->pmc.batchScanResultCallback(pCallbackContext,
-               pBatchScanResult);
-         }
-         else
-         {
-            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-               "%s:HDD callback is null", __func__);
-            VOS_ASSERT(0);
-         }
-         break;
-     }
-#endif
 
       default:
       {

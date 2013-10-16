@@ -1,9 +1,43 @@
 /*
-* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
-
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 /**
  * \file limSendManagementFrames.c
  *
@@ -6070,138 +6104,3 @@ returnAfterError:
    return nSirStatus;
 } // End limSendSaQueryResponseFrame
 #endif
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-tSirRetStatus
-limSendRMCActionFrame(tpAniSirGlobal  pMac,
-                        tSirMacAddr   peerMacAddr,
-                        tSirRMCInfo  *pRMC,
-                        tpPESession   psessionEntry)
-{
-    tSirRetStatus    nSirStatus;
-    tANI_U8         *pFrame;
-    tDot11fRMC       RMC;
-    tANI_U32         nPayload, nBytes, nStatus;
-    tpSirMacMgmtHdr  pMacHdr;
-    void            *pPacket;
-    eHalStatus       halstatus;
-    tANI_U8          txFlag = 0;
-
-
-    if (NULL == psessionEntry)
-    {
-       return eSIR_FAILURE;
-    }
-
-    vos_mem_set(( tANI_U8* )&RMC, sizeof( RMC ), 0);
-
-    RMC.Action.action     = pRMC->action;
-    RMC.DialogToken.token = pRMC->dialogToken;
-    RMC.Category.category = SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY;
-    RMC.RMCVersion.version = SIR_MAC_RMC_VER;
-
-    vos_mem_copy(&RMC.RMCOUI.oui, SIR_MAC_RMC_OUI, SIR_MAC_RMC_OUI_SIZE);
-
-    vos_mem_copy(&RMC.MagicCode.magic, SIR_MAC_OXYGEN_MAGIC_CODE,
-                     SIR_MAC_OXYGEN_MAGIC_CODE_SIZE);
-
-    vos_mem_copy(&RMC.Leader.mac, pRMC->mcastLeader, sizeof(tSirMacAddr));
-
-    nStatus = dot11fGetPackedRMCSize( pMac, &RMC, &nPayload );
-    if ( DOT11F_FAILED( nStatus ) )
-    {
-        limLog( pMac, LOGE, FL("Failed to calculate the packed size for "
-                               "an RMC (0x%08x)."),
-                nStatus );
-        // We'll fall back on the worst case scenario:
-        nPayload = sizeof( tDot11fRMC );
-    }
-    else if ( DOT11F_WARNED( nStatus ) )
-    {
-        limLog( pMac, LOGW, FL("There were warnings while calculating "
-                               "the packed size for an RMC Action Frame"
-                               " (0x%08x)."), nStatus );
-    }
-
-    nBytes = nPayload + sizeof( tSirMacMgmtHdr );
-
-    halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                             ( tANI_U16 )nBytes, ( void** ) &pFrame,
-                             ( void** ) &pPacket );
-    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
-    {
-        limLog( pMac, LOGP, FL("Failed to allocate %d bytes for an RMC "
-                               "Action Frame."), nBytes );
-        return eSIR_FAILURE;
-    }
-
-    // Paranoia:
-    vos_mem_set( pFrame, nBytes, 0 );
-
-    // Next, we fill out the buffer descriptor:
-    nSirStatus = limPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
-                    SIR_MAC_MGMT_ACTION, peerMacAddr,
-                    psessionEntry->selfMacAddr);
-    if ( eSIR_SUCCESS != nSirStatus )
-    {
-        limLog( pMac, LOGE, FL("Failed to populate the buffer descriptor "
-                               "for an RMC Action Frame (%d)."),
-                nSirStatus );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                    ( void* ) pFrame, ( void* ) pPacket );
-        return nSirStatus;
-    }
-
-    // Update A3 with the BSSID
-    pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
-    sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
-
-    // That done, pack the struct:
-    nStatus = dot11fPackRMC( pMac, &RMC,
-                                      pFrame + sizeof(tSirMacMgmtHdr),
-                                      nPayload, &nPayload );
-    if ( DOT11F_FAILED( nStatus ) )
-    {
-        limLog( pMac, LOGE, FL("Failed to pack an RMC "
-                               "(0x%08x)."),
-                nStatus );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame,
-                     ( void* ) pPacket );
-        return eSIR_FAILURE;
-    }
-    else if ( DOT11F_WARNED( nStatus ) )
-    {
-        limLog( pMac, LOGW, FL("There were warnings while packing "
-                               "an RMC (0x%08x).") );
-    }
-
-    PELOG3(limLog( pMac, LOG3, FL("Sending an RMC Action frame to "
-             MAC_ADDRESS_STR), MAC_ADDR_ARRAY(peerMacAddr) );)
-
-    if ((SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel))
-       || ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
-         ( psessionEntry->pePersona == VOS_P2P_GO_MODE)
-         )
-    {
-        txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
-    }
-
-    // Queue RMC Action frame in high priority WQ
-    halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
-                            HAL_TXRX_FRM_802_11_MGMT,
-                            ANI_TXDIR_TODS,
-                            7,//SMAC_SWBD_TX_TID_MGMT_HIGH,
-                            limTxComplete, pFrame, txFlag );
-    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
-    {
-        limLog( pMac, LOGE, FL( "*** Could not send an RMC Action frame"
-                                " (%X) ***" ), halstatus );
-        //Pkt will be freed up by the callback
-        return eSIR_FAILURE;
-    }
-
-    return eSIR_SUCCESS;
-
-} // End limSendRMCActionFrame.
-
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */

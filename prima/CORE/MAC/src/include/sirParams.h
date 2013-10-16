@@ -1,8 +1,43 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
@@ -67,10 +102,6 @@ typedef enum {
    WLAN_PERIODIC_TX_PTRN = 28,
 #ifdef FEATURE_WLAN_TDLS
    ADVANCE_TDLS = 29,
-#endif
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-   BATCH_SCAN = 30,
 #endif
 
    //MAX_FEATURE_SUPPORTED = 128
@@ -563,34 +594,11 @@ typedef struct sSirMbMsgP2p
 #define SIR_HAL_DHCP_STOP_IND              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 205)
 #define SIR_HAL_IBSS_PEER_INACTIVITY_IND   (SIR_HAL_ITC_MSG_TYPES_BEGIN + 206)
 
-#define SIR_HAL_LPHB_CONF_IND              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 207)
-#define SIR_HAL_LPHB_WAIT_EXPIRE_IND       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 208)
+#define SIR_HAL_LPHB_CONF_IND              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 206)
+#define SIR_HAL_LPHB_WAIT_EXPIRE_IND       (SIR_HAL_ITC_MSG_TYPES_BEGIN + 207)
 
-#define SIR_HAL_ADD_PERIODIC_TX_PTRN_IND   (SIR_HAL_ITC_MSG_TYPES_BEGIN + 209)
-#define SIR_HAL_DEL_PERIODIC_TX_PTRN_IND   (SIR_HAL_ITC_MSG_TYPES_BEGIN + 210)
-
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-#define SIR_HAL_RMC_BECOME_LEADER          (SIR_HAL_ITC_MSG_TYPES_BEGIN + 211)
-#define SIR_HAL_RMC_LEADER_SELECT_RESP     (SIR_HAL_ITC_MSG_TYPES_BEGIN + 212)
-#define SIR_HAL_RMC_LEADER_REQ             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 213)
-#define SIR_HAL_RMC_UPDATE_IND             (SIR_HAL_ITC_MSG_TYPES_BEGIN + 214)
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
-
-#ifdef FEATURE_CESIUM_PROPRIETARY
-/* For IBSS peer info related messages */
-#define SIR_HAL_IBSS_PEER_INFO_REQ         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 215)
-#define SIR_HAL_IBSS_PEER_INFO_RSP         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 216)
-#endif /* FEATURE_CESIUM_PROPRIETARY */
-
-#define SIR_HAL_RATE_UPDATE_IND            (SIR_HAL_ITC_MSG_TYPES_BEGIN + 217)
-
-#ifdef FEATURE_WLAN_BATCH_SCAN
-#define SIR_HAL_SET_BATCH_SCAN_REQ         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 218)
-#define SIR_HAL_SET_BATCH_SCAN_RSP         (SIR_HAL_ITC_MSG_TYPES_BEGIN + 219)
-#define SIR_HAL_STOP_BATCH_SCAN_IND        (SIR_HAL_ITC_MSG_TYPES_BEGIN + 220)
-#define SIR_HAL_TRIGGER_BATCH_SCAN_RESULT_IND (SIR_HAL_ITC_MSG_TYPES_BEGIN + 221)
-#endif
-
+#define SIR_HAL_ADD_PERIODIC_TX_PTRN_IND   (SIR_HAL_ITC_MSG_TYPES_BEGIN + 208)
+#define SIR_HAL_DEL_PERIODIC_TX_PTRN_IND   (SIR_HAL_ITC_MSG_TYPES_BEGIN + 209)
 
 #define SIR_HAL_MSG_TYPES_END              (SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF)
 // CFG message types

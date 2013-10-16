@@ -1,16 +1,51 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
-*/
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
 
 /*============================================================================
   FILE:         vos_nvitem.c
   OVERVIEW:     This source file contains definitions for vOS NV Item APIs
   DEPENDENCIES: NV, remote API client, WinCE REX
-                Copyright (c) 2008 Qualcomm Technologies, Inc.
+                Copyright (c) 2008 QUALCOMM Incorporated.
                 All Rights Reserved.
-                Qualcomm Technologies Confidential and Proprietary
+                Qualcomm Confidential and Proprietary
 ============================================================================*/
 /*============================================================================
   EDIT HISTORY FOR MODULE
@@ -242,13 +277,8 @@ static CountryInfoTable_t countryInfoTable =
     {
         { REGDOMAIN_FCC,     {'U', 'S'}},  //USA - must be the first country code
         { REGDOMAIN_ETSI,    {'A', 'D'}},  //ANDORRA
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        { REGDOMAIN_WORLD,   {'A', 'E'}}, //UAE
-        { REGDOMAIN_APAC,    {'A', 'F'}},  //AFGHANISTAN
-#else
         { REGDOMAIN_ETSI,    {'A', 'E'}},  //UAE
         { REGDOMAIN_N_AMER_EXC_FCC, {'A', 'F'}},  //AFGHANISTAN
-#endif
         { REGDOMAIN_WORLD,   {'A', 'G'}},  //ANTIGUA AND BARBUDA
         { REGDOMAIN_FCC,     {'A', 'I'}},  //ANGUILLA
         { REGDOMAIN_ETSI,    {'A', 'L'}},  //ALBANIA
@@ -262,11 +292,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD,   {'A', 'U'}},  //AUSTRALIA
         { REGDOMAIN_ETSI,    {'A', 'W'}},  //ARUBA
         { REGDOMAIN_WORLD,   {'A', 'X'}},  //ALAND ISLANDS
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        { REGDOMAIN_WORLD,   {'A', 'Z'}},  //AZERBAIJAN
-#else
         { REGDOMAIN_N_AMER_EXC_FCC, {'A', 'Z'}},  //AZERBAIJAN
-#endif
         { REGDOMAIN_ETSI,    {'B', 'A'}},  //BOSNIA AND HERZEGOVINA
         { REGDOMAIN_APAC,    {'B', 'B'}},  //BARBADOS
         { REGDOMAIN_HI_5GHZ, {'B', 'D'}},  //BANGLADESH
@@ -312,11 +338,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'D', 'Z'}},  //ALGERIA
         { REGDOMAIN_APAC,    {'E', 'C'}},  //ECUADOR
         { REGDOMAIN_ETSI,    {'E', 'E'}},  //ESTONIA
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        { REGDOMAIN_APAC,    {'E', 'G'}},  //EGYPT
-#else
         { REGDOMAIN_N_AMER_EXC_FCC, {'E', 'G'}},  //EGYPT
-#endif
         { REGDOMAIN_WORLD,   {'E', 'H'}},  //WESTERN SAHARA
         { REGDOMAIN_NO_5GHZ, {'E', 'R'}},  //ERITREA
         { REGDOMAIN_ETSI,    {'E', 'S'}},  //SPAIN
@@ -359,11 +381,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD,   {'I', 'M'}},  //ISLE OF MAN
         { REGDOMAIN_APAC,    {'I', 'N'}},  //INDIA
         { REGDOMAIN_WORLD,   {'I', 'O'}},  //BRITISH INDIAN OCEAN TERRITORY
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        { REGDOMAIN_ETSI,    {'I', 'Q'}},  //IRAQ
-#else
         { REGDOMAIN_NO_5GHZ, {'I', 'Q'}},  //IRAQ
-#endif
         { REGDOMAIN_HI_5GHZ, {'I', 'R'}},  //IRAN, ISLAMIC REPUBLIC OF
         { REGDOMAIN_ETSI,    {'I', 'S'}},  //ICELAND
         { REGDOMAIN_ETSI,    {'I', 'T'}},  //ITALY
@@ -402,11 +420,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI,    {'L', 'U'}},  //LUXEMBOURG
         { REGDOMAIN_ETSI,    {'L', 'V'}},  //LATVIA
         { REGDOMAIN_NO_5GHZ, {'L', 'Y'}},  //LIBYAN ARAB JAMAHIRIYA
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        { REGDOMAIN_N_AMER_EXC_FCC, {'M', 'A'}},  //MOROCCO
-#else
         { REGDOMAIN_APAC,    {'M', 'A'}},  //MOROCCO
-#endif
         { REGDOMAIN_ETSI,    {'M', 'C'}},  //MONACO
         { REGDOMAIN_ETSI,    {'M', 'D'}},  //MOLDOVA, REPUBLIC OF
         { REGDOMAIN_ETSI,    {'M', 'E'}},  //MONTENEGRO
@@ -512,11 +526,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_N_AMER_EXC_FCC, {'W', 'S'}},  //SOMOA
         { REGDOMAIN_NO_5GHZ, {'Y', 'E'}},  //YEMEN
         { REGDOMAIN_ETSI,    {'Y', 'T'}},  //MAYOTTE
-#ifdef FEATURE_CESIUM_PROPRIETARY
-        { REGDOMAIN_ETSI,    {'Z', 'A'}},  //SOUTH AFRICA
-#else
         { REGDOMAIN_WORLD,   {'Z', 'A'}},  //SOUTH AFRICA
-#endif
         { REGDOMAIN_APAC,    {'Z', 'M'}},  //ZAMBIA
         { REGDOMAIN_ETSI,    {'Z', 'W'}},  //ZIMBABWE
     }
@@ -2847,12 +2857,6 @@ void wlan_hdd_linux_reg_notifier(struct wiphy *wiphy,
     wiphy_dbg(wiphy, "info: cfg80211 reg_notifier callback for country"
               " %c%c\n", request->alpha2[0], request->alpha2[1]);
 
-    if (pHddCtx->isLoadUnloadInProgress)
-    {
-        wiphy_dbg(wiphy, "info: %s: Unloading/Loading in Progress. Ignore!!!",
-                  __func__);
-        return;
-    }
     /* first check if this callback is in response to the driver callback */
 
     if (VOS_TRUE == kernel_reg_request_made) {

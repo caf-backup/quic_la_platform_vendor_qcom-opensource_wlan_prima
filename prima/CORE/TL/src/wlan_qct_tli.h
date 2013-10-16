@@ -1,8 +1,45 @@
 /*
- * Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- * */
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+/*
+ * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ *
+ * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+ *
+ *
+ * Permission to use, copy, modify, and/or distribute this software for
+ * any purpose with or without fee is hereby granted, provided that the
+ * above copyright notice and this permission notice appear in all
+ * copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+ * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+ * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+ * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+ * PERFORMANCE OF THIS SOFTWARE.
+ */
+
+
 #ifndef WLAN_QCT_TLI_H
 #define WLAN_QCT_TLI_H
 
@@ -16,8 +53,6 @@ DESCRIPTION
   This file contains the internal declarations used within wlan transport
   layer module.
 
-  Copyright (c) 2008 Qualcomm Technologies, Inc. All Rights Reserved.
-  Qualcomm Technologies Confidential and Proprietary
 ===========================================================================*/
 
 
@@ -35,7 +70,6 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
-08/19/13    rajekuma Added reliable multicast support in TL
 02/19/10    bad     Fixed 802.11 to 802.3 ft issues with WAPI
 01/14/10    rnair   Fixed the byte order for the WAI packet type.
 01/08/10    lti     Added TL Data Caching
@@ -156,11 +190,6 @@ when        who    what, where, why
 #define WLANTL_FRAME_TYPE_MCAST 0x01
 #define WLANTL_FRAME_TYPE_UCAST 0x00
 
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-/*Size of TL's active list of reliable multicast hash table.
-  Always keep this value 2 ^ n for efficient hashing*/
-#define WLANTL_RMCAST_HASH_TABLE_SIZE (32)
-#endif
 
 /*-------------------------------------------------------------------------
   BT-AMP related definition - !!! should probably be moved to BT-AMP header
@@ -710,19 +739,6 @@ typedef struct
    vos_lock_t                           hosLock;
 } WLANTL_HO_SUPPORT_TYPE;
 
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-
-struct tTL_ReliableMcastList
-{
-  /* Reliable multicast session in TL */
-  struct tTL_ReliableMcastList *next;
-  v_MACADDR_t           reliableMcastAddr;
-};
-
-typedef struct tTL_ReliableMcastList WLANTL_RMCAST_SESSION;
-
-#endif
-
 /*---------------------------------------------------------------------------
   TL control block type
 ---------------------------------------------------------------------------*/
@@ -832,14 +848,6 @@ typedef struct
   v_BOOL_t                  isBMPS;
   /* Whether WDA_DS_TX_START_XMIT msg is pending or not */
   v_BOOL_t   isTxTranmitMsgPending;
-
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-  /*Active reliable multicast sessions list in TL*/
-  WLANTL_RMCAST_SESSION *reliableMcastSession[WLANTL_RMCAST_HASH_TABLE_SIZE];
-  /*Reliable multicast lock*/
-  vos_lock_t rmcLock;
-#endif
-
 }WLANTL_CbType;
 
 /*==========================================================================
@@ -1687,168 +1695,5 @@ WLANTL_FwdPktToHDD
   vos_pkt_t*     pvosDataBuff,
   v_U8_t          ucSTAId
 );
-
-#ifdef WLAN_FEATURE_RELIABLE_MCAST
-
-/*==========================================================================
-   FUNCTION WLANTL_RmcInit
-
-   DESCRIPTION This function initilizes RMC module in TL
-
-   PARAMETERS
-   pADapter : pointer to VOS global context
-
-   RETURN VALUE
-   VOS_STATUS_SUCCESS : for success
-   VOS_STATUS_FAILURE : for failure
-   VOS_STATUS_E_INVAL : for invalid input parameter
-
-============================================================================*/
-VOS_STATUS WLANTL_RmcInit
-(
-     v_PVOID_t   pAdapter
-);
-
-/*==========================================================================
-   FUNCTION WLANTL_RmcDeInit
-
-   DESCRIPTION This function de-initilizes RMC module in TL
-
-   PARAMETERS
-   pADapter : pointer to VOS global context
-
-   RETURN VALUE
-   VOS_STATUS_SUCCESS : for success
-   VOS_STATUS_FAILURE : for failure
-   VOS_STATUS_E_INVAL : for invalid input parameter
-
-============================================================================*/
-VOS_STATUS WLANTL_RmcDeInit
-(
-    v_PVOID_t   pAdapter
-);
-
-
-/*==========================================================================
-   FUNCTION WLANTL_RmcHashRmcastSession
-
-   DESCRIPTION This function hashes input RMCAST MAC address
-
-   PARAMETERS
-   pMcastAddr : pointer to input RMCAST MAC address
-
-   RETURN VALUE
-   tANI_U8 : A hash value between 0 to WLANTL_MAX_RMCAST_SESSIONS - 1
-============================================================================*/
-tANI_U8 WLANTL_RmcHashRmcastSession ( v_MACADDR_t   *pMcastAddr );
-
-
-/*===========================================================================
-   FUNCTION WLANTL_RmcLookUpRmcastSession
-
-   DESCRIPTION This function tries to find out RMCAST address in TL's active
-    list of reliable multicast sessions
-
-   PARAMETERS
-   pTLCb      : pointer to TL Cb
-   pMcastAddr : pointer to input RMCAST MAC address
-
-   RETURN VALUE
-   WLANTL_RMCAST_SESSION * :
-     NULL if input RMCAST MAC address does exist in active RMCAST sessions list
-     Pointer to RMCAST session found in active RMCAST sessions list
-=============================================================================*/
-WLANTL_RMCAST_SESSION *WLANTL_RmcLookUpRmcastSession
-(
-    WLANTL_CbType* pTLCb,
-    v_MACADDR_t     *pMcastAddr
-);
-
-/*===========================================================================
-   FUNCTION WLANTL_RmcAddRmcastSession
-
-   DESCRIPTION This function adds requested RMCAST address in TL's active
-    list of reliable multicast sessions
-
-   PARAMETERS
-   pTLCb      : pointer to TL Cb
-   pMcastAddr : pointer to input RMCAST MAC address
-
-   RETURN VALUE
-   WLANTL_RMCAST_SESSION * :
-     NULL if input RMCAST MAC address already exists in active RMCAST sessions
-     list else pointer to RMCAST session which is added in active RMCAST
-     sessions list
-=============================================================================*/
-WLANTL_RMCAST_SESSION *WLANTL_RmcAddRmcastSession
-(
-    WLANTL_CbType* pTLCb,
-    v_MACADDR_t   *pMcastAddr
-);
-
-/*===========================================================================
-   FUNCTION WLANTL_RmcDeleteRmcastSession
-
-   DESCRIPTION This function deleted requested RMCAST address from TL's active
-    list of reliable multicast sessions
-
-   PARAMETERS
-   pTLCb      : pointer to TL Cb
-   pMcastAddr : pointer to input RMCAST MAC address
-
-   RETURN VALUE
-   WLANTL_RMCAST_SESSION * :
-     0   if input RMCAST session does not exist in active RMCAST
-         sessions list
-     1   if input RMCAST session is successfully deleted from TL's active list
-         of reliable multicast sessions
-=============================================================================*/
-tANI_U8
-WLANTL_RmcDeleteRmcastSession
-(
-    WLANTL_CbType* pTLCb,
-    v_MACADDR_t   *pMcastAddr
-);
-
-/*=============================================================================
-  FUNCTION    WLANTL_ProcessRmcCommand
-
-  DESCRIPTION
-    This function adds/deletes input RMCAST session to/from TL's active hash
-    table of RMCAST sessions
-
-  DEPENDENCIES
-    Reliable multicast receive leader must be selected by FW before
-    UMAC calling this API
-
-  PARAMETERS
-
-   IN
-
-   pTLCb      : Pointer to TL context
-   pMcastAddr : Pointer to MAC ADDR of RMCAST session which needs to to added
-                or deleted
-   command    : If command is 1 then add requested RMCAST session in active
-                session hash table else delete it from active session hash
-                table
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAILURE:   When add or delete command failed
-
-    VOS_STATUS_SUCCESS:     Everything is good :)
-
-  SIDE EFFECTS
-==============================================================================*/
-VOS_STATUS
-WLANTL_ProcessRmcCommand
-(
-    WLANTL_CbType*  pTLCb,
-    v_MACADDR_t    *pMcastAddr,
-    tANI_U32        command
-);
-
-#endif /*End of WLAN_FEATURE_RELIABLE_MCAST*/
 
 #endif /* #ifndef WLAN_QCT_TLI_H */

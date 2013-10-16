@@ -1,9 +1,23 @@
 /*
-* Copyright (c) 2011-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
+  * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+  *
+  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+  *
+  *
+  * Permission to use, copy, modify, and/or distribute this software for
+  * any purpose with or without fee is hereby granted, provided that the
+  * above copyright notice and this permission notice appear in all
+  * copies.
+  *
+  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+  * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+  * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  * PERFORMANCE OF THIS SOFTWARE.
 */
-
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file lim ProcessMessageQueue.cc contains the code
@@ -51,8 +65,6 @@
 #ifdef WMM_APSD
 #include "wmmApsd.h"
 #endif
-
-#include "limRMC.h"
 
 #include "vos_types.h"
 #include "vos_packet.h"
@@ -1339,17 +1351,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limMsg->bodyptr = NULL;
             break;
 
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-        case eWNI_SME_ENABLE_RMC_REQ:
-        case eWNI_SME_DISABLE_RMC_REQ:
-            /*
-             * These messages are from HDD
-             * No need to response to hdd
-             */
-            limProcessSmeReqMessages(pMac,limMsg);
-            break;
-#endif /* WLAN_FEATURE_RELIABLE_MCAST */
-
         case SIR_HAL_P2P_NOA_START_IND:
         {
             tpPESession psessionEntry = &pMac->lim.gpSession[0];
@@ -1992,28 +1993,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        limMsg->bodyptr = NULL;
        break;
     }
-#if defined WLAN_FEATURE_RELIABLE_MCAST
-    case WDA_RMC_BECOME_LEADER:
-        limProcessRMCMessages(pMac, eLIM_RMC_BECOME_LEADER_RESP,
-                          (void *)limMsg->bodyptr);
-        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
-        limMsg->bodyptr = NULL;
-        break ;
-
-    case WDA_RMC_LEADER_SELECT_RESP:
-        limProcessRMCMessages(pMac, eLIM_RMC_LEADER_SELECT_RESP,
-                          (void *)limMsg->bodyptr);
-        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
-        limMsg->bodyptr = NULL;
-        break ;
-
-    case WDA_RMC_UPDATE_IND:
-        limProcessRMCMessages(pMac, eLIM_RMC_LEADER_PICK_NEW,
-                          (void *)limMsg->bodyptr);
-        vos_mem_free((v_VOID_t*)limMsg->bodyptr);
-        limMsg->bodyptr = NULL;
-        break ;
-#endif /* defined WLAN_FEATURE_RELIABLE_MCAST */
 
     default:
         vos_mem_free((v_VOID_t*)limMsg->bodyptr);

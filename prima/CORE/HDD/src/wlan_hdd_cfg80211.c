@@ -1,7 +1,22 @@
 /*
-* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
-* All Rights Reserved.
-* Qualcomm Atheros Confidential and Proprietary.
+  * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+  *
+  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
+  *
+  *
+  * Permission to use, copy, modify, and/or distribute this software for
+  * any purpose with or without fee is hereby granted, provided that the
+  * above copyright notice and this permission notice appear in all
+  * copies.
+  *
+  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+  * WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
+  * WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+  * AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+  * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+  * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  * PERFORMANCE OF THIS SOFTWARE.
 */
 
 /**========================================================================
@@ -3987,8 +4002,6 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     struct cfg80211_bss *bss_status = NULL;
     size_t frame_len = sizeof (struct ieee80211_mgmt) + ie_length;
     int rssi = 0;
-    hdd_context_t *pHddCtx;
-    int status;
 #ifdef WLAN_OPEN_SOURCE
     struct timespec ts;
 #endif
@@ -3997,16 +4010,6 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 
     if (!mgmt)
         return NULL;
-
-    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-    status = wlan_hdd_validate_context(pHddCtx);
-
-    if (0 != status)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "%s: HDD context is not valid", __func__);
-        return NULL;
-    }
 
     memcpy(mgmt->bssid, bss_desc->bssId, ETH_ALEN);
 
@@ -4098,8 +4101,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
              pAdapter->sessionCtx.station.conn_info.connState ) &&
              ( VOS_TRUE == vos_mem_compare(bss_desc->bssId,
                              pAdapter->sessionCtx.station.conn_info.bssId,
-                             WNI_CFG_BSSID_LEN)) &&
-                             (pHddCtx->hdd_wlan_suspended == FALSE))
+                             WNI_CFG_BSSID_LEN)))
     {
        /* supplicant takes the signal strength in terms of mBm(100*dBm) */
        rssi = (pAdapter->rssi * 100);
@@ -6290,7 +6292,6 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
     tCsrRoamProfile *pRoamProfile;
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     int status;
-    tANI_U8 addIE[WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN] = {0};
 
     ENTER();
 
@@ -6317,39 +6318,6 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
     if (eCSR_BSS_TYPE_START_IBSS != pRoamProfile->BSSType)
     {
         hddLog (VOS_TRACE_LEVEL_ERROR, "%s: BSS Type is not set to IBSS",
-                __func__);
-        return -EINVAL;
-    }
-
-    /* Clearing add IE of beacon */
-    if (ccmCfgSetStr(pHddCtx->hHal,
-        WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &addIE[0],
-        WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN,
-        NULL, eANI_BOOLEAN_FALSE) != eHAL_STATUS_SUCCESS)
-    {
-        hddLog (VOS_TRACE_LEVEL_ERROR,
-                "%s: unable to clear PROBE_RSP_BCN_ADDNIE_DATA", __func__);
-        return -EINVAL;
-    }
-    if (ccmCfgSetInt(pHddCtx->hHal,
-        WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 0, NULL,
-        eANI_BOOLEAN_FALSE) != eHAL_STATUS_SUCCESS)
-    {
-        hddLog (VOS_TRACE_LEVEL_ERROR,
-                "%s: unable to clear WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG",
-                __func__);
-        return -EINVAL;
-    }
-
-    // Reset WNI_CFG_PROBE_RSP Flags
-    wlan_hdd_reset_prob_rspies(pAdapter);
-
-    if (ccmCfgSetInt(WLAN_HDD_GET_HAL_CTX(pAdapter),
-                     WNI_CFG_PROBE_RSP_ADDNIE_FLAG, 0,NULL,
-                     eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
-    {
-        hddLog (VOS_TRACE_LEVEL_ERROR,
-                "%s: unable to clear WNI_CFG_PROBE_RSP_ADDNIE_FLAG",
                 __func__);
         return -EINVAL;
     }
