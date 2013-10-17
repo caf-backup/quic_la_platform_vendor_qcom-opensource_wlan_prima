@@ -1,4 +1,9 @@
 /*
+ * Copyright (c) 2012 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+/*
  * Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
