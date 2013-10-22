@@ -426,7 +426,11 @@ wpt_status wpalWriteRegister
    wpt_uint32   data
 )
 {
-   if (NULL == gpEnv) {
+   /* if SSR is in progress, and WCNSS is not out of reset (re-init
+    * not invoked), then do not access WCNSS registers */
+   if (NULL == gpEnv ||
+        (vos_is_logp_in_progress(VOS_MODULE_ID_WDI, NULL) &&
+            !vos_is_reinit_in_progress(VOS_MODULE_ID_WDI, NULL))) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: invoked before subsystem initialized",
                  __func__);
@@ -470,7 +474,11 @@ wpt_status wpalReadRegister
    wpt_uint32  *data
 )
 {
-   if (NULL == gpEnv) {
+   /* if SSR is in progress, and WCNSS is not out of reset (re-init
+    * not invoked), then do not access WCNSS registers */
+   if (NULL == gpEnv ||
+        (vos_is_logp_in_progress(VOS_MODULE_ID_WDI, NULL) &&
+            !vos_is_reinit_in_progress(VOS_MODULE_ID_WDI, NULL))) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: invoked before subsystem initialized",
                  __func__);
@@ -517,7 +525,11 @@ wpt_status wpalWriteDeviceMemory
   wpt_uint32 len
 )
 {
-   if (NULL == gpEnv) {
+   /* if SSR is in progress, and WCNSS is not out of reset (re-init
+    * not invoked), then do not access WCNSS registers */
+   if (NULL == gpEnv ||
+        (vos_is_logp_in_progress(VOS_MODULE_ID_WDI, NULL) &&
+            !vos_is_reinit_in_progress(VOS_MODULE_ID_WDI, NULL))) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: invoked before subsystem initialized",
                  __func__);
@@ -557,7 +569,11 @@ wpt_status wpalReadDeviceMemory
   wpt_uint32 len
 )
 {
-   if (NULL == gpEnv) {
+   /* if SSR is in progress, and WCNSS is not out of reset (re-init
+    * not invoked), then do not access WCNSS registers */
+   if (NULL == gpEnv ||
+        (vos_is_logp_in_progress(VOS_MODULE_ID_WDI, NULL) &&
+            !vos_is_reinit_in_progress(VOS_MODULE_ID_WDI, NULL))) {
       WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                  "%s: invoked before subsystem initialized",
                  __func__);
