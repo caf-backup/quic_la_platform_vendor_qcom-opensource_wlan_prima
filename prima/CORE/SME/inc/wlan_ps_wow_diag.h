@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 #ifndef _WLAN_PS_WOW_DIAG_H_
 #define _WLAN_PS_WOW_DIAG_H_
 

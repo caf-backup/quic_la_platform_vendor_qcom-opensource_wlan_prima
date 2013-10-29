@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 #ifndef __WLAN_QCT_DTS_H
 #define __WLAN_QCT_DTS_H
 

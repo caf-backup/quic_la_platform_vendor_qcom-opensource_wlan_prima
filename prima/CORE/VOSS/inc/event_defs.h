@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 #ifndef EVENT_DEFS_H
 #define EVENT_DEFS_H
 

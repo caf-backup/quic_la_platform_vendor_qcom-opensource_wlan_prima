@@ -1,4 +1,9 @@
 /*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+/*
  * This file limAssocUtils.h contains the utility definitions
  * LIM uses while processing Re/Association messages.
  * Author:        Chandra Modumudi

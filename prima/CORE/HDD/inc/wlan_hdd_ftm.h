@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 #ifndef WLAN_HDD_FTM_H
 #define WLAN_HDD_FTM_H
 #include "vos_status.h"

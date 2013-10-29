@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 #ifndef WLAN_QCT_MSG_MAP_H
 #define WLAN_QCT_MSG_MAP_H
 

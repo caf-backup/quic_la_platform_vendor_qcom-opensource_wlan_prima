@@ -1,4 +1,9 @@
 /*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+/*
  * This file limDebug.h contains log function called by LIM module.
  *
  * Author:      Chandra Modumudi

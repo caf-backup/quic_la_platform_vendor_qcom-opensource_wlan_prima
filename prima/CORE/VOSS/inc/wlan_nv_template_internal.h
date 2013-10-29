@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
 #if !defined _WLAN_NV_TEMPLATE_INTERNAL_H
 #define  _WLAN_NV_TEMPLATE_INTERNAL_H
 

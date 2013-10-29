@@ -1,4 +1,9 @@
 /*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limSendSmeRspMessages.cc contains the functions
  * for sending SME response/notification messages to applications

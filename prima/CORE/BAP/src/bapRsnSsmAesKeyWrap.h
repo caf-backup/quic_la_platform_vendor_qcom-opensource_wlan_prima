@@ -1,4 +1,9 @@
 /*
+ * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * All Rights Reserved.
+ * Qualcomm Atheros Confidential and Proprietary.
+ */
+/*
  * Qualcomm Inc, proprietary. All rights reserved.
  * Ref File: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/ssm/include/aniSsmAesKeyWrap.h $
  *
