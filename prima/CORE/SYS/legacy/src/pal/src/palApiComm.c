@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #include <palApi.h>
 #include <sirTypes.h>   // needed for tSirRetStatus
 #include <vos_api.h>

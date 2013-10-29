@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #ifndef __P2P_H
 #define __P2P_H
 /**===========================================================================

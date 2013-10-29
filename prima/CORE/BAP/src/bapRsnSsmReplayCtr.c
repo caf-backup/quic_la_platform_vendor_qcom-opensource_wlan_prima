@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
  * Woodside Networks, Inc proprietary. All rights reserved.
  * File: $Header: //depot/software/projects/feature_branches/gen5_phase1/os/linux/classic/ap/apps/ssm/lib/aniSsmReplayCtr.c#2 $ 
  *

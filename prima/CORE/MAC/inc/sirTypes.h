@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
  * This file sirTypes.h contains the common types
  *
  * Author:    V. K. Kandarpa

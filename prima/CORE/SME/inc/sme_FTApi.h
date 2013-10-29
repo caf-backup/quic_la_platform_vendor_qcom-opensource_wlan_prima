@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #if !defined( __SME_FTAPI_H )
 #define __SME_FTAPI_H
 

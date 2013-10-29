@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #if !defined( WLAN_HDD_SOFTAP_TX_RX_H )
 #define WLAN_HDD_SOFTAP_TX_RX_H
 

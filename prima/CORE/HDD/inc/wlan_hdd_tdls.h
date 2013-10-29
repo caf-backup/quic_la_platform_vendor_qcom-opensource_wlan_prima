@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #ifndef __HDD_TDSL_H
 #define __HDD_TDSL_H
 /**===========================================================================

@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
  * Airgo Networks, Inc proprietary. All rights reserved
  * sysEntryFunc.cc - This file has all the system level entry functions
  *                   for all the defined threads at system level.

@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #ifndef _WLAN_HDD_WOWL_H
 #define _WLAN_HDD_WOWL_H
 

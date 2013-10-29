@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirParams.h contains the common parameter definitions, which
  * are not dependent on threadX API. These can be used by all Firmware

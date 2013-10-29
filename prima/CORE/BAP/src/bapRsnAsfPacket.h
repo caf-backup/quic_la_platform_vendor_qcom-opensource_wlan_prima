@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
  * Woodside Networks, Inc proprietary. All rights reserved.
  * File: $File: //depot/software/projects/feature_branches/nova_phase1/ap/apps/include/aniAsfPacket.h $
  * Contains declarations for packet manipulation routines that make it

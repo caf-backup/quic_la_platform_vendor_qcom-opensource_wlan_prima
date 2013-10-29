@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #ifndef __WDA_DEBUG_H__
 #define __WDA_DEBUG_H__
 #if  !defined (ANI_OS_TYPE_ANDROID)

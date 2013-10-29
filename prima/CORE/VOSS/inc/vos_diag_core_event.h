@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #if !defined( __VOS_DIAG_CORE_EVENT_H )
 #define __VOS_DIAG_CORE_EVENT_H
 

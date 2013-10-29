@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file contains TSPEC and STA admit control related functions
  * NOTE: applies only to AP builds

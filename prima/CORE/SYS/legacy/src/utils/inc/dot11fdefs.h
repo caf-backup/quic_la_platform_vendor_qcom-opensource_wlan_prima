@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #ifndef DOT11FDEFS_H_82A7B72E_C36C_465D_82A7_139EA5322582
 #define DOT11FDEFS_H_82A7B72E_C36C_465D_82A7_139EA5322582
 /**

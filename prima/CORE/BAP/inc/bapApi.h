@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
 #ifndef WLAN_QCT_WLANBAP_H
 #define WLAN_QCT_WLANBAP_H
 

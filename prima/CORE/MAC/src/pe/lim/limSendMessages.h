@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2012 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
  *
  * Airgo Networks, Inc proprietary. All rights reserved.
  * limSendMessages.h: Provides functions to send messages or Indications to HAL.
