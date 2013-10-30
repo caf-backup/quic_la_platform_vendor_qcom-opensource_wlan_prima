@@ -2790,7 +2790,7 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
    }
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_DEBUG,
-             "%s: UAPSD/PSB set %d: ", __func__, __LINE__,
+             "%s: %d: UAPSD/PSB set %d: ", __func__, __LINE__,
              pTspec_Info->ts_info.psb);
 
    pACInfo = &pSession->ac_info[ac];
