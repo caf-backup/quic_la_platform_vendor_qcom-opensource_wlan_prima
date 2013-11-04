@@ -361,7 +361,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a P"
-                               "robe Request (0x%08x).") );
+                               "robe Request (0x%08x)."), nStatus );
     }
 
     // Append any AddIE if present.
@@ -835,7 +835,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a P"
-                               "robe Response (0x%08x).") );
+                               "robe Response (0x%08x)."), nStatus );
     }
 
     PELOG3(limLog( pMac, LOG3, FL("Sending Probe Response frame to ") );
@@ -1106,8 +1106,8 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
         }
         else if ( DOT11F_WARNED( nStatus ) )
         {
-            limLog( pMac, LOGW, FL("There were warnings while packing"
-                                   "an Add TS Request (0x%08x).") );
+            limLog( pMac, LOGW, FL("There were warnings while packing "
+                                   "an Add TS Request (0x%08x)."), nStatus );
         }
     }
     else
@@ -1125,8 +1125,8 @@ limSendAddtsReqActionFrame(tpAniSirGlobal    pMac,
         }
         else if ( DOT11F_WARNED( nStatus ) )
         {
-            limLog( pMac, LOGW, FL("There were warnings while packing"
-                                   "a WMM Add TS Request (0x%08x).") );
+            limLog( pMac, LOGW, FL("There were warnings while packing "
+                                   "a WMM Add TS Request (0x%08x)."), nStatus );
         }
     }
 
@@ -1325,7 +1325,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for an Association Re"
                                "sponse (0x%08x)."), nStatus );
     }
@@ -1411,7 +1411,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing an "
-                               "Association Response (0x%08x).") );
+                               "Association Response (0x%08x)."), nStatus );
     }
 
     macAddr = pMacHdr->da;
@@ -1592,7 +1592,7 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
         else if ( DOT11F_WARNED( nStatus ) )
         {
             limLog( pMac, LOGW, FL("There were warnings while calcula"
-                                   "tingthe packed size for an Add TS"
+                                   "ting the packed size for an Add TS"
                                    " Response (0x%08x)."), nStatus );
         }
     }
@@ -1619,7 +1619,7 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
         else if ( DOT11F_WARNED( nStatus ) )
         {
             limLog( pMac, LOGW, FL("There were warnings while calcula"
-                                   "tingthe packed size for a WMM Add"
+                                   "ting the packed size for a WMM Add"
                                    "TS Response (0x%08x)."), nStatus );
         }
     }
@@ -1684,8 +1684,8 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
         }
         else if ( DOT11F_WARNED( nStatus ) )
         {
-            limLog( pMac, LOGW, FL("There were warnings while packing"
-                                   "an Add TS Response (0x%08x).") );
+            limLog( pMac, LOGW, FL("There were warnings while packing "
+                                   "an Add TS Response (0x%08x)."), nStatus );
         }
     }
     else
@@ -1703,8 +1703,8 @@ limSendAddtsRspActionFrame(tpAniSirGlobal     pMac,
         }
         else if ( DOT11F_WARNED( nStatus ) )
         {
-            limLog( pMac, LOGW, FL("There were warnings while packing"
-                                   "a WMM Add TS Response (0x%08x).") );
+            limLog( pMac, LOGW, FL("There were warnings while packing "
+                                   "a WMM Add TS Response (0x%08x)."), nStatus );
         }
     }
 
@@ -1869,8 +1869,8 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
         }
         else if ( DOT11F_WARNED( nStatus ) )
         {
-            limLog( pMac, LOGW, FL("There were warnings while packing"
-                                   "a Del TS frame (0x%08x).") );
+            limLog( pMac, LOGW, FL("There were warnings while packing "
+                                   "a Del TS frame (0x%08x)."), nStatus );
         }
     }
     else
@@ -1887,8 +1887,8 @@ limSendDeltsReqActionFrame(tpAniSirGlobal  pMac,
         }
         else if ( DOT11F_WARNED( nStatus ) )
         {
-            limLog( pMac, LOGW, FL("There were warnings while packing"
-                                   "a WMM Del TS frame (0x%08x).") );
+            limLog( pMac, LOGW, FL("There were warnings while packing "
+                                   "a WMM Del TS frame (0x%08x)."), nStatus );
         }
     }
 
@@ -2169,7 +2169,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                     "the packed size for an Association Re "
                     "quest(0x%08x)."), nStatus );
     }
@@ -2237,7 +2237,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a P"
-                    "robe Response (0x%08x).") );
+                               "robe Response (0x%08x)."), nStatus );
     }
 
     PELOG1(limLog( pMac, LOG1, FL("*** Sending Association Request length %d"
@@ -2563,7 +2563,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                     "the packed size for a Re-Association Re "
                     "quest(0x%08x)."), nStatus );
     }
@@ -2629,7 +2629,7 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a R"
-                    "e-Association Request (0x%08x).") );
+                               "e-Association Request (0x%08x)."), nStatus );
     }
 
     PELOG3(limLog( pMac, LOG3, 
@@ -2976,7 +2976,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a Re-Association Re "
                                "quest(0x%08x)."), nStatus );
     }
@@ -3027,7 +3027,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a R"
-                               "e-Association Request (0x%08x).") );
+                               "e-Association Request (0x%08x)."), nStatus );
     }
 
     PELOG1(limLog( pMac, LOG1, FL("*** Sending Re-Association Request length %d"
@@ -3631,7 +3631,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a Disassociation "
                                "(0x%08x)."), nStatus );
     }
@@ -3687,7 +3687,7 @@ limSendDisassocMgmtFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a D"
-                               "isassociation (0x%08x).") );
+                               "isassociation (0x%08x)."), nStatus );
     }
 
     PELOG1(limLog( pMac, LOG1, FL("*** Sending Disassociation frame with rea"
@@ -3811,7 +3811,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a De-Authentication "
                                "(0x%08x)."), nStatus );
     }
@@ -3867,7 +3867,7 @@ limSendDeauthMgmtFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a D"
-                               "e-Authentication (0x%08x).") );
+                               "e-Authentication (0x%08x)."), nStatus );
     }
 
     PELOG1(limLog( pMac, LOG1, FL("*** Sending De-Authentication frame with rea"
@@ -4040,7 +4040,7 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a Measurement Rep"
                                "ort (0x%08x)."), nStatus );
     }
@@ -4100,7 +4100,7 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a M"
-                               "easurement Report (0x%08x).") );
+                               "easurement Report (0x%08x)."), nStatus );
     }
 
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
@@ -4163,7 +4163,7 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a TPC Request (0x"
                                "%08x)."), nStatus );
     }
@@ -4223,7 +4223,7 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a T"
-                               "PC Request (0x%08x).") );
+                               "PC Request (0x%08x)."), nStatus );
     }
 
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
@@ -4294,7 +4294,7 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a TPC Report (0x"
                                "%08x)."), nStatus );
     }
@@ -4354,7 +4354,7 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a T"
-                               "PC Report (0x%08x).") );
+                               "PC Report (0x%08x)."), nStatus );
     }
 
 
@@ -4434,7 +4434,7 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a Channel Switch (0x"
                                "%08x)."), nStatus );
     }
@@ -4500,7 +4500,7 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a C"
-                               "hannel Switch (0x%08x).") );
+                               "hannel Switch (0x%08x)."), nStatus );
     }
 
     if( ( SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel))
@@ -4565,7 +4565,7 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a Operating Mode (0x"
                                "%08x)."), nStatus );
     }
@@ -4616,7 +4616,7 @@ limSendVHTOpmodeNotificationFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a Operating Mode"
-                               " (0x%08x).") );
+                               " (0x%08x)."), nStatus );
     }
     if( ( SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel))
        || ( psessionEntry->pePersona == VOS_P2P_CLIENT_MODE ) ||
@@ -4704,7 +4704,7 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     }
     else if ( DOT11F_WARNED( nStatus ) )
     {
-        limLog( pMac, LOGW, FL("There were warnings while calculating"
+        limLog( pMac, LOGW, FL("There were warnings while calculating "
                                "the packed size for a Channel Switch (0x"
                                "%08x)."), nStatus );
     }
@@ -4749,7 +4749,7 @@ limSendVHTChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     else if ( DOT11F_WARNED( nStatus ) )
     {
         limLog( pMac, LOGW, FL("There were warnings while packing a C"
-                               "hannel Switch (0x%08x).") );
+                               "hannel Switch (0x%08x)."), nStatus );
     }
 
     if( ( SIR_BAND_5_GHZ == limGetRFBand(psessionEntry->currentOperChannel))
@@ -4856,7 +4856,7 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     else if( DOT11F_WARNED( nStatus ))
     {
         limLog( pMac, LOGW,
-        FL( "There were warnings while calculating"
+        FL( "There were warnings while calculating "
           "the packed size for an ADDBA Req (0x%08x)."),
         nStatus );
     }
@@ -4938,7 +4938,8 @@ tSirRetStatus limSendAddBAReq( tpAniSirGlobal pMac,
     else if( DOT11F_WARNED( nStatus ))
     {
         limLog( pMac, LOGW,
-        FL( "There were warnings while packing an ADDBA Req (0x%08x)." ));
+                FL( "There were warnings while packing an ADDBA Req (0x%08x)."),
+                nStatus );
     }
 
     limLog( pMac, LOGW,
@@ -5067,7 +5068,7 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
       else if( DOT11F_WARNED( nStatus ))
       {
         limLog( pMac, LOGW,
-            FL( "There were warnings while calculating"
+            FL( "There were warnings while calculating "
               "the packed size for an ADDBA Rsp (0x%08x)."),
             nStatus );
       }
@@ -5150,7 +5151,8 @@ tSirRetStatus limSendAddBARsp( tpAniSirGlobal pMac,
       else if( DOT11F_WARNED( nStatus ))
       {
         limLog( pMac, LOGW,
-            FL( "There were warnings while packing an ADDBA Rsp (0x%08x)." ));
+                FL( "There were warnings while packing an ADDBA Rsp (0x%08x)." ),
+                nStatus);
       }
 
       limLog( pMac, LOGW,
@@ -5266,7 +5268,7 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
       else if( DOT11F_WARNED( nStatus ))
       {
         limLog( pMac, LOGW,
-            FL( "There were warnings while calculating"
+            FL( "There were warnings while calculating "
               "the packed size for an DELBA Ind (0x%08x)."),
             nStatus );
       }
@@ -5348,7 +5350,8 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
       else if( DOT11F_WARNED( nStatus ))
       {
         limLog( pMac, LOGW,
-            FL( "There were warnings while packing an DELBA Ind (0x%08x)." ));
+                FL( "There were warnings while packing an DELBA Ind (0x%08x)." ),
+                nStatus);
       }
 
       limLog( pMac, LOGW,
@@ -5456,7 +5459,7 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
    }
    else if ( DOT11F_WARNED( nStatus ) )
    {
-      limLog( pMac, LOGW, FL("There were warnings while calculating"
+      limLog( pMac, LOGW, FL("There were warnings while calculating "
                "the packed size for a Neighbor Rep"
                "ort Request(0x%08x)."), nStatus );
    }
@@ -5512,7 +5515,8 @@ limSendNeighborReportRequestFrame(tpAniSirGlobal        pMac,
    else if( DOT11F_WARNED( nStatus ))
    {
       limLog( pMac, LOGW,
-            FL( "There were warnings while packing Neighbor Report Request (0x%08x)." ));
+              FL( "There were warnings while packing Neighbor Report "
+                  "Request (0x%08x)." ), nStatus);
    }
 
    limLog( pMac, LOGW,
@@ -5624,7 +5628,7 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
    }
    else if ( DOT11F_WARNED( nStatus ) )
    {
-      limLog( pMac, LOGW, FL("There were warnings while calculating"
+      limLog( pMac, LOGW, FL("There were warnings while calculating "
                "the packed size for a Link Rep"
                "ort (0x%08x)."), nStatus );
    }
@@ -5680,7 +5684,8 @@ limSendLinkReportActionFrame(tpAniSirGlobal        pMac,
    else if( DOT11F_WARNED( nStatus ))
    {
       limLog( pMac, LOGW,
-            FL( "There were warnings while packing Link Report (0x%08x)." ));
+              FL( "There were warnings while packing Link Report (0x%08x)." ),
+              nStatus );
    }
 
    limLog( pMac, LOGW,
@@ -5813,7 +5818,7 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
    }
    else if ( DOT11F_WARNED( nStatus ) )
    {
-      limLog( pMac, LOGW, FL("There were warnings while calculating"
+      limLog( pMac, LOGW, FL("There were warnings while calculating "
                "the packed size for a Radio Measure Rep"
                "ort (0x%08x)."), nStatus );
    }
@@ -5870,7 +5875,8 @@ limSendRadioMeasureReportActionFrame(tpAniSirGlobal        pMac,
    else if( DOT11F_WARNED( nStatus ))
    {
       limLog( pMac, LOGW,
-            FL( "There were warnings while packing Radio Measure Report (0x%08x)." ));
+              FL( "There were warnings while packing Radio "
+                  "Measure Report (0x%08x)." ), nStatus);
    }
 
    limLog( pMac, LOGW,
@@ -5967,7 +5973,7 @@ tSirMacAddr peer,tpPESession psessionEntry)
    }
    else if ( DOT11F_WARNED( nStatus ) )
    {
-      limLog( pMac, LOGW, FL("There were warnings while calculating"
+      limLog( pMac, LOGW, FL("There were warnings while calculating "
                "the packed size for an SA Query Response"
                " (0x%08x)."), nStatus );
    }
