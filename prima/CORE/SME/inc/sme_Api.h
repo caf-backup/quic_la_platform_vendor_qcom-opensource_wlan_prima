@@ -1449,6 +1449,8 @@ typedef void ( *tSmeChangeCountryCallback)(void *pContext);
 
     \param pCountry New Country Code String
 
+    \param sendRegHint If we want to send reg hint to nl80211
+
     \return eHalStatus  SUCCESS.
 
                          FAILURE or RESOURCES  The API finished and failed.
@@ -1459,7 +1461,8 @@ eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
                                   tANI_U8 *pCountry,
                                   void *pContext,
                                   void* pVosContext,
-                                  tAniBool countryFromUserSpace );
+                                  tAniBool countryFromUserSpace,
+                                  tAniBool sendRegHint);
 
 /* ---------------------------------------------------------------------------
 
