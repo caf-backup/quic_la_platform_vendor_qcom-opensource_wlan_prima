@@ -1,8 +1,8 @@
-/*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
+*
+* Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*
 *
 * Woodside Networks, Inc proprietary. All rights reserved.
 * This is the data definition file for the CFG module.
@@ -4576,3 +4576,13 @@ HAL
 3   50    10
 *
 *
+
+* ATH Enable/Disable
+*
+WNI_CFG_ATH_DISABLE	I    4    7
+V    RW    NP
+NONE
+0   1    0
+V    RW    NP
+NONE
+0   1    0
