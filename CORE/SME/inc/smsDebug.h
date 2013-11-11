@@ -62,6 +62,7 @@
 #endif
 
 void __printf(3,4)
+<<<<<<< HEAD
 void smsLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString, ...);
 
 void __printf(3,4)
