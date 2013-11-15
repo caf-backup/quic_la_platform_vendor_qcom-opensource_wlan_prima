@@ -6999,7 +6999,7 @@ WLANTL_STATxAuth
   if (( NULL == pTLCb ) || ( NULL == pvosDataBuff ))
   {
      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %p",
+            "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %p DB %p",
              pTLCb, pvosDataBuff));
     if (NULL != pvosDataBuff)
     {
@@ -8163,7 +8163,7 @@ if(0 == ucUnicastBroadcastType
 
                   pClientSTA->ulTotalReplayPacketsDetected++;
                   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                  "WLAN TL: AMSDU total dropped replay packets on STA ID  %X is [0x%lX]\n",
+                  "WLAN TL: AMSDU total dropped replay packets on STA ID %X is [0x%X]\n",
                   ucSTAId,  pClientSTA->ulTotalReplayPacketsDetected);
 
                   /* Drop the packet */
@@ -8204,7 +8204,7 @@ if(0 == ucUnicastBroadcastType
 
                pClientSTA->ulTotalReplayPacketsDetected++;
                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Non-AMSDU total dropped replay packets on STA ID %X is [0x%lX]\n",
+                "WLAN TL: Non-AMSDU total dropped replay packets on STA ID %X is [0x%X]\n",
                 ucSTAId, pClientSTA->ulTotalReplayPacketsDetected);
 
                /* Repaly packet, drop the packet */
@@ -10801,7 +10801,7 @@ WLANTL_CleanSTA
        ( NULL != ptlSTAClient->vosAMSDUChainRoot ))
   {
     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
-               "WLAN TL:Non NULL vosAMSDUChainRoot (=%p) on WLANTL_CleanSTA,"
+               "WLAN TL:Non NULL vosAMSDUChainRoot on WLANTL_CleanSTA, "
                "suspecting a memory corruption"));
 
   }
