@@ -7060,7 +7060,7 @@ WDI_ProcessStopReq
      if( eWLAN_PAL_STATUS_SUCCESS != status ) 
      {
         WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Power Down state\n", status);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Power Down state", status);
         WDI_ASSERT(0);
         goto fail;
      }
@@ -7613,7 +7613,7 @@ WDI_ProcessFinishScanReq
      if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
      {
         WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering BMPS\n", wptStatus);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering BMPS", wptStatus);
         WDI_ASSERT(0);
      }
   }
@@ -12953,7 +12953,7 @@ WDI_ProcessEnterImpsReq
    wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_IMPS, WDI_SetPowerStateCb);
    if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) {
         WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering IMPS\n", wptStatus);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering IMPS", wptStatus);
         WDI_ASSERT(0);
         goto fail;
     }
@@ -13117,7 +13117,7 @@ WDI_ProcessEnterBmpsReq
    if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
    {
         WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that we are entering BMPS\n", wptStatus);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that we are entering BMPS", wptStatus);
         WDI_ASSERT(0);
         goto fail;
     }
@@ -15224,7 +15224,7 @@ WDI_ProcessInitScanRsp
      wptStatus = WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
      if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) {
         WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state", wptStatus);
         WDI_ASSERT(0);
     }
   }
@@ -18297,7 +18297,7 @@ WDI_ProcessEnterImpsRsp
      
      if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) {
           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state", wptStatus);
           WDI_ASSERT(0);
      }
   }
@@ -18359,7 +18359,7 @@ WDI_ProcessExitImpsRsp
   if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state", wptStatus);
     WDI_ASSERT(0);
   }
   /*Notify UMAC*/
@@ -18442,7 +18442,7 @@ WDI_ProcessEnterBmpsRsp
        if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
        {
            WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state", wptStatus);
            WDI_ASSERT(0);
        }
        pWDICtx->bInBmps = eWLAN_PAL_FALSE;
@@ -18516,7 +18516,7 @@ WDI_ProcessExitBmpsRsp
   if( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state\n", wptStatus);
+                "WDTS_SetPowerState returned with status %d when trying to notify DTS that host is entering Full Power state", wptStatus);
     WDI_ASSERT(0);
   }
   pWDICtx->bInBmps = eWLAN_PAL_FALSE;
@@ -24743,7 +24743,7 @@ WDI_PackRoamScanOffloadParams
               "NeighborRoamScanRefreshPeriod=%d,NeighborScanChannelMinTime=%d,"
               "NeighborScanChannelMaxTime = %d,EmptyRefreshScanPeriod=%d,"
               "mdiePresent=%d,MDID=%d, auth=%d, uce=%d, mce=%d, nProbes=%d,"
-              "HomeAwayTime=%d\n",
+              "HomeAwayTime=%d",
               pRoamCandidateListParams->ConnectedNetwork.ssId.ssId,
               pRoamCandidateListParams->RoamScanOffloadEnabled,
               pRoamCandidateListParams->Command,
@@ -25779,17 +25779,17 @@ WDI_ProcessReceiveFilterSetFilterReq
                          8);
        
            WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "Out:Proto %d Comp Flag %d \n",
+                "Out:Proto %d Comp Flag %d",
                 pSessRcvPktFilterCfg->paramsData[i].protocolLayer,
                 pSessRcvPktFilterCfg->paramsData[i].cmpFlag);
 
            WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "Data Offset %d Data Len %d\n",
+                "Data Offset %d Data Len %d",
                 pSessRcvPktFilterCfg->paramsData[i].dataOffset,
                 pSessRcvPktFilterCfg->paramsData[i].dataLength);
        
            WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "CData: %d:%d:%d:%d:%d:%d\n",
+                "CData: %d:%d:%d:%d:%d:%d",
                 pSessRcvPktFilterCfg->paramsData[i].compareData[0],
                 pSessRcvPktFilterCfg->paramsData[i].compareData[1],
                 pSessRcvPktFilterCfg->paramsData[i].compareData[2],
@@ -25798,7 +25798,7 @@ WDI_ProcessReceiveFilterSetFilterReq
                 pSessRcvPktFilterCfg->paramsData[i].compareData[5]);
        
            WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "MData: %d:%d:%d:%d:%d:%d\n",
+                "MData: %d:%d:%d:%d:%d:%d",
                 pSessRcvPktFilterCfg->paramsData[i].dataMask[0],
                 pSessRcvPktFilterCfg->paramsData[i].dataMask[1],
                 pSessRcvPktFilterCfg->paramsData[i].dataMask[2],
@@ -25893,17 +25893,17 @@ WDI_ProcessReceiveFilterSetFilterReq
                     8);
 
           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-           "Out:Proto %d Comp Flag %d \n",
+           "Out:Proto %d Comp Flag %d",
            pRcvPktFilterCfg->paramsData[i].protocolLayer,
            pRcvPktFilterCfg->paramsData[i].cmpFlag);
 
           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-               "Data Offset %d Data Len %d\n",
+               "Data Offset %d Data Len %d",
                pRcvPktFilterCfg->paramsData[i].dataOffset,
                pRcvPktFilterCfg->paramsData[i].dataLength);
 
           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-               "CData: %d:%d:%d:%d:%d:%d\n",
+               "CData: %d:%d:%d:%d:%d:%d",
                pRcvPktFilterCfg->paramsData[i].compareData[0],
                pRcvPktFilterCfg->paramsData[i].compareData[1],
                pRcvPktFilterCfg->paramsData[i].compareData[2],
@@ -25912,7 +25912,7 @@ WDI_ProcessReceiveFilterSetFilterReq
                pRcvPktFilterCfg->paramsData[i].compareData[5]);
 
           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "MData: %d:%d:%d:%d:%d:%d\n",
+               "MData: %d:%d:%d:%d:%d:%d",
                pRcvPktFilterCfg->paramsData[i].dataMask[0],
                pRcvPktFilterCfg->paramsData[i].dataMask[1],
                pRcvPktFilterCfg->paramsData[i].dataMask[2],
@@ -27541,7 +27541,7 @@ WDI_featureCapsExchangeReq
    if ( NULL ==  gpHostWlanFeatCaps )
    {
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Cannot allocate memory for host capability info\n"); 
+               "Cannot allocate memory for host capability info");
       WDI_ASSERT(0);
       return WDI_STATUS_MEM_FAILURE;
    }
@@ -27554,7 +27554,7 @@ WDI_featureCapsExchangeReq
    FillAllFeatureCaps(gpHostWlanFeatCaps, supportEnabledFeatures,
       (sizeof(supportEnabledFeatures)/sizeof(supportEnabledFeatures[0])));
    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-      "Host caps %x %x %x %x\n",
+      "Host caps %x %x %x %x",
       gpHostWlanFeatCaps->featCaps[0],
       gpHostWlanFeatCaps->featCaps[1],
       gpHostWlanFeatCaps->featCaps[2],
@@ -27643,7 +27643,7 @@ WDI_ProcessFeatureCapsExchangeReq
   }
 
   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-       "Host Caps - %x %x %x %x\n",
+       "Host Caps - %x %x %x %x",
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[0],
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[1],
       ((tWlanFeatCaps *)pEventData->pEventData)->featCaps[2],
@@ -27706,7 +27706,7 @@ WDI_ProcessFeatureCapsExchangeRsp
    if ( NULL ==  gpFwWlanFeatCaps )
    {
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Cannot allocate memory for host capability info\n"); 
+               "Cannot allocate memory for host capability info");
       WDI_ASSERT(0);
       return WDI_STATUS_MEM_FAILURE;
    }
@@ -27722,7 +27722,7 @@ WDI_ProcessFeatureCapsExchangeRsp
    wpalMemoryCopy(gpFwWlanFeatCaps,(tWlanFeatCaps *) pEventData -> pEventData,
                     fCapsStructSize);
    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-      "FW caps %x %x %x %x\n",
+      "FW caps %x %x %x %x",
       gpFwWlanFeatCaps->featCaps[0],
       gpFwWlanFeatCaps->featCaps[1],
       gpFwWlanFeatCaps->featCaps[2],
@@ -27890,7 +27890,7 @@ WDI_ProcessUpdateVHTOpModeReq
   }
 
   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-            "pwdiVHTOpModeParams->opMode=%d, pwdiVHTOpModeParams->staId=%d\n", pwdiVHTOpModeParams->opMode, pwdiVHTOpModeParams->staId);
+            "pwdiVHTOpModeParams->opMode=%d, pwdiVHTOpModeParams->staId=%d", pwdiVHTOpModeParams->opMode, pwdiVHTOpModeParams->staId);
 
   wpalMemoryCopy( pSendBuffer+usDataOffset, pwdiVHTOpModeParams,
                   sizeof(WDI_UpdateVHTOpMode));
@@ -27935,7 +27935,7 @@ WDI_UpdateVHTOpModeReq
   wdiEventData.pUserData       = pUserData;
   
   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-            "pData->opMode=%d, pData->staId=%d\n", pData->opMode, pData->staId);
+            "pData->opMode=%d, pData->staId=%d", pData->opMode, pData->staId);
 
   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
 
