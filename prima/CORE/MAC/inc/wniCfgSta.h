@@ -1,8 +1,11 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (C) 2011-2013 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
+ * Copyright (C) 2007-2009 Qualcomm Technologies, Inc.
+ * All rights reserved. Proprietary and Confidential.
  */
+
 /*
  * DO NOT EDIT - This file is generated automatically
  */
@@ -992,7 +995,7 @@
 
 #define WNI_CFG_BLOCK_ACK_ENABLED_STAMIN    0
 #define WNI_CFG_BLOCK_ACK_ENABLED_STAMAX    3
-#define WNI_CFG_BLOCK_ACK_ENABLED_STADEF    0
+#define WNI_CFG_BLOCK_ACK_ENABLED_STADEF    2
 
 #define WNI_CFG_BLOCK_ACK_ENABLED_DELAYED    0
 #define WNI_CFG_BLOCK_ACK_ENABLED_IMMEDIATE    1
