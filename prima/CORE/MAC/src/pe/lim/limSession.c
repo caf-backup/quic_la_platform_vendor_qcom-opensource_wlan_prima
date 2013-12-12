@@ -104,6 +104,7 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
             {
                 limLog(pMac, LOGE, FL("memory allocate failed!"));
                 vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
+                pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = NULL;
                 return NULL;
             }
             pMac->lim.gpSession[i].dph.dphHashTable.size = numSta;
@@ -118,6 +119,8 @@ tpPESession peCreateSession(tpAniSirGlobal pMac, tANI_U8 *bssid , tANI_U8* sessi
                 PELOGE(limLog(pMac, LOGE, FL("memory allocate failed!"));)
                 vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pHashTable);
                 vos_mem_free(pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray);
+                pMac->lim.gpSession[i].dph.dphHashTable.pHashTable = NULL;
+                pMac->lim.gpSession[i].dph.dphHashTable.pDphNodeArray = NULL;
                 return NULL;
             }
             vos_mem_set(pMac->lim.gpSession[i].gpLimPeerIdxpool,
