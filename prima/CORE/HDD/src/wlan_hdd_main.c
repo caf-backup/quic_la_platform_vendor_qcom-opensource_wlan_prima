@@ -1426,6 +1426,7 @@ tANI_U32 hdd_populate_user_batch_scan_rsp
          pAdapter->pBatchScanRsp  = pHead;
          pAdapter->prev_batch_id = pPrev->ApInfo.batchId;
          vos_mem_free(pPrev);
+         pPrev = NULL;
    }
 
    return cur_len;
@@ -2322,6 +2323,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s:STA is not associated to this AP!",__func__);
                ret = -EINVAL;
                vos_mem_free(buf);
+               buf = NULL;
                goto exit;
            }
 
@@ -2334,6 +2336,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                          __func__, channel, pHddStaCtx->conn_info.operationChannel);
                ret = -EINVAL;
                vos_mem_free(buf);
+               buf = NULL;
                goto exit;
            }
            chan.center_freq = sme_ChnToFreq(channel);
@@ -2345,6 +2348,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s:memory allocation failed",__func__);
                ret = -ENOMEM;
                vos_mem_free(buf);
+               buf = NULL;
                goto exit;
            }
            vos_mem_zero(finalBuf, finalLen);
@@ -2371,6 +2375,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
            /* done with the parsed buffer */
            vos_mem_free(buf);
+           buf = NULL;
 
            wlan_hdd_action( NULL,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
@@ -3605,18 +3610,14 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: CCKM Ie input length is more than max[%d]", __func__,
                   DOT11F_IE_RSN_MAX_LEN);
-               if (NULL != cckmIe)
-               {
-                   vos_mem_free(cckmIe);
-               }
+               vos_mem_free(cckmIe);
+               cckmIe = NULL;
                ret = -EINVAL;
                goto exit;
            }
            sme_SetCCKMIe((tHalHandle)(pHddCtx->hHal), pAdapter->sessionId, cckmIe, cckmIeLen);
-           if (NULL != cckmIe)
-           {
-               vos_mem_free(cckmIe);
-           }
+           vos_mem_free(cckmIe);
+           cckmIe = NULL;
        }
        else if (strncmp(command, "CCXBEACONREQ", 12) == 0)
        {
@@ -5442,6 +5443,7 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
               pPrev = pNode;
               pNode = pNode->pNext;
               vos_mem_free((v_VOID_t * )pPrev);
+              pPrev = NULL;
           }
           pAdapter->pBatchScanRsp = NULL;
       }
@@ -5948,6 +5950,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
 
       hdd_remove_adapter( pHddCtx, pAdapterNode );
       vos_mem_free( pAdapterNode );
+      pAdapterNode = NULL;
 
 #ifdef FEATURE_WLAN_TDLS
        mutex_unlock(&pHddCtx->tdls_lock);
@@ -5986,6 +5989,7 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
       {
          hdd_cleanup_adapter( pHddCtx, pHddAdapterNode->pAdapter, FALSE );
          vos_mem_free( pHddAdapterNode );
+         pHddAdapterNode = NULL;
       }
    }while( NULL != pHddAdapterNode && VOS_STATUS_E_EMPTY != status );
    
@@ -6792,12 +6796,14 @@ void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter)
          {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s kmalloc failed", __func__);
             vos_mem_free(channelInfo.ChannelList);
+            channelInfo.ChannelList = NULL;
             return;
          }
          vos_mem_copy(scanReq.ChannelInfo.ChannelList, channelInfo.ChannelList,
             channelInfo.numOfChannels);
          scanReq.ChannelInfo.numOfChannels = channelInfo.numOfChannels;
          vos_mem_free(channelInfo.ChannelList);
+         channelInfo.ChannelList = NULL;
       }
 
       scanReq.scanType = eSIR_PASSIVE_SCAN;
