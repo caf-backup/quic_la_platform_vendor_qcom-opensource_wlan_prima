@@ -262,6 +262,7 @@ typedef struct sSirCcxBcnReportMandatoryIe
     tANI_U8               cfPresent;
     tANI_U8               ibssParamPresent;
     tANI_U8               timPresent;
+    tANI_U8               rrmPresent;
 } tSirCcxBcnReportMandatoryIe, *tpSirCcxBcnReportMandatoryIe;
 #endif /* FEATURE_WLAN_CCX_UPLOAD */
 
