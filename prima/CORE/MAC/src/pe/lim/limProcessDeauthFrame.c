@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -111,12 +111,13 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession p
 #endif
 
     // Get reasonCode from Deauthentication frame body
-    reasonCode = sirReadU16(pBody);
+    reasonCode = sirReadU16(pBody); 
 
     PELOGE(limLog(pMac, LOGE,
-        FL("received Deauth frame (mlm state = %s) with reason code %d from "),
-        limMlmStateStr(psessionEntry->limMlmState), reasonCode);
-    limPrintMacAddr(pMac, pHdr->sa, LOGE);)
+        FL("Received Deauth frame for Addr: "MAC_ADDRESS_STR" (mlm state = %s, sme state = %d)"
+        "with reason code %d from "MAC_ADDRESS_STR), MAC_ADDR_ARRAY(pHdr->da),
+        limMlmStateStr(psessionEntry->limMlmState), psessionEntry->limSmeState, reasonCode,
+        MAC_ADDR_ARRAY(pHdr->sa));)
       
     if (limCheckDisassocDeauthAckPending(pMac, (tANI_U8*)pHdr->sa))
     {

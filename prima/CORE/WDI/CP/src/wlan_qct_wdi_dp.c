@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -434,6 +434,8 @@ WDI_FillTxBd
         pBd->dpuRF = BMUWQ_BTQM_TX_MGMT; 
     }
 
+    if(ucTxFlag & WDI_USE_FW_IN_TX_PATH)
+        pBd->dpuRF = BMUWQ_FW_DPU_TX;
 
     pBd->tid           = ucTid; 
     // Clear the reserved field as this field is used for defining special 
@@ -659,7 +661,7 @@ WDI_FillTxBd
                 return WDI_STATUS_E_NOT_ALLOWED;
            }
 #else
-            ucStaId = pWDICtx->ucSelfStaId;
+           ucStaId = pWDICtx->ucSelfStaId;
 #endif
         }
         else
@@ -786,7 +788,9 @@ WDI_FillTxBd
               }
               ucStaId = pBSSSes->bcastStaIdx;
            }
-         }    
+         }
+
+        WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,"StaId:%d and ucTxFlag:%02x", ucStaId, ucTxFlag);
 
         pBd->staIndex = ucStaId;
         

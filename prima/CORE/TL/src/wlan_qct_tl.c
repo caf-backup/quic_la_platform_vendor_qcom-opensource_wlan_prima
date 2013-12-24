@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -3129,7 +3129,7 @@ WLANTL_TxMgmtFrm
   v_U8_t               ucTid,
   WLANTL_TxCompCBType  pfnCompTxFunc,
   v_PVOID_t            pvBDHeader,
-  v_U8_t               ucAckResponse
+  v_U32_t              ucAckResponse
 )
 {
   WLANTL_CbType*  pTLCb = NULL;
@@ -6632,7 +6632,7 @@ WLANTL_STATxConn
    v_U8_t               extraHeadSpace = 0;
    v_U8_t               ucWDSEnabled = 0;
    v_U8_t               ucAC, ucACMask, i; 
-   v_U8_t               txFlag = HAL_TX_NO_ENCRYPTION_MASK;
+   v_U32_t              txFlag = HAL_TX_NO_ENCRYPTION_MASK;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -7008,7 +7008,7 @@ WLANTL_STATxAuth
    v_U8_t                extraHeadSpace = 0;
    WLANTL_STAClientType *pStaClient = NULL;
    v_U8_t                ucWDSEnabled = 0;
-   v_U8_t                ucTxFlag   = 0; 
+   v_U32_t               ucTxFlag   = 0;
    v_U8_t                ucACMask, i; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 

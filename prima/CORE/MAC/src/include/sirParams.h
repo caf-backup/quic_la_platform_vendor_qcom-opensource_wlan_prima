@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -72,6 +72,7 @@ typedef enum {
 #ifdef FEATURE_WLAN_BATCH_SCAN
    BATCH_SCAN = 30,
 #endif
+   FW_IN_TX_PATH = 31,
 
    //MAX_FEATURE_SUPPORTED = 128
 } placeHolderInCapBitmap;

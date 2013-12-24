@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -396,7 +396,7 @@ WDA_DS_BuildTxPacketInfo
   v_U8_t          typeSubtype,
   v_PVOID_t       pAddr2,
   v_U8_t          uTid,
-  v_U8_t          txFlag,
+  v_U32_t          txFlag,
   v_U32_t         timeStamp,
   v_U8_t          ucIsEapol,
   v_U8_t          ucUP
