@@ -1367,7 +1367,7 @@ void hdd_sendMgmtFrameOverMonitorIface( hdd_adapter_t *pMonAdapter,
          hddLog( LOG1, FL("Success"));
      }
      else
-         hddLog( LOGE, FL("Failed %d"), rxstat);                   
+         hddLog( LOGE, FL("Failed %d"), rxstat);
 
      return ;
 }
@@ -1384,6 +1384,8 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     tANI_U8 subType = 0;
     tActionFrmType actionFrmType;
     hdd_cfg80211_state_t *cfgState = NULL;
+    hdd_context_t *pHddCtx = NULL;
+    hdd_scaninfo_t *pScanInfo = NULL;
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: Frame Type = %d Frame Length = %d",
             __func__, frameType, nFrameLength);
@@ -1440,6 +1442,13 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
     {
         hddLog( LOGE, FL("pAdapter has invalid magic"));
         return;
+    }
+
+    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+    if (NULL == pHddCtx)
+    {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD Context Null Pointer", __func__);
+         return;
     }
 
     if ((WLAN_HDD_SOFTAP == pAdapter->device_mode) ||
@@ -1517,7 +1526,18 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                     }
                 }
 #endif
-
+                if( (actionFrmType == WLAN_HDD_PROV_DIS_REQ) ||
+                    (actionFrmType == WLAN_HDD_GO_NEG_REQ) )
+                {
+                    pScanInfo =  &pHddCtx->scan_info;
+                    if((pScanInfo != NULL) && (pHddCtx->scan_info.mScanPending))
+                    {
+                        hddLog(LOGE,"Action frame received when Scanning is in"
+                                    " progress. Abort Scan.");
+                        hdd_abort_mac_scan(pAdapter->pHddCtx,
+                                           pAdapter->sessionId);
+                    }
+                }
                 if (((actionFrmType == WLAN_HDD_PROV_DIS_RESP) &&
                             (cfgState->actionFrmState == HDD_PD_REQ_ACK_PENDING)) ||
                         ((actionFrmType == WLAN_HDD_GO_NEG_RESP) &&
