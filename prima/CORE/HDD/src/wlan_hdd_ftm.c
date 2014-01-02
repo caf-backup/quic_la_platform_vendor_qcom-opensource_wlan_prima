@@ -3293,36 +3293,6 @@ static unsigned int get_primary_channel(unsigned int center_channel,unsigned int
 
 }
 
-
-static VOS_STATUS validate_channel(unsigned int channel,unsigned int cb)
-{
-    unsigned int *table = NULL;
-    int index = 0;
-
-    if (PHY_SINGLE_CHANNEL_CENTERED == cb)
-        table = valid_channel;
-    else if (cb >= PHY_DOUBLE_CHANNEL_LOW_PRIMARY &&
-             cb <= PHY_DOUBLE_CHANNEL_HIGH_PRIMARY)
-        table = valid_channel_cb40;
-    else if (cb >= PHY_QUADRUPLE_CHANNEL_20MHZ_LOW_40MHZ_CENTERED &&
-             cb <= PHY_QUADRUPLE_CHANNEL_20MHZ_HIGH_40MHZ_HIGH)
-        table = valid_channel_cb80;
-
-    if (NULL == table)
-        return VOS_STATUS_E_FAILURE;
-
-    while (table[index] != 0)
-    {
-        if (table[index] == channel)
-            return VOS_STATUS_SUCCESS;
-
-        index++;
-    }
-
-    return VOS_STATUS_E_FAILURE;
-}
-
-
 /**---------------------------------------------------------------------------
 
   \brief wlan_ftm_priv_set_channel() -
