@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
+
 /*===========================================================================
 
                        W L A N _ Q C T _ C T S . C
@@ -63,7 +64,11 @@
 #include "wlan_qct_wdi.h"
 #include "wlan_qct_wdi_i.h"
 #ifdef CONFIG_ANDROID
+#ifdef EXISTS_MSM_SMD
 #include <mach/msm_smd.h>
+#else
+#include <soc/qcom/smd.h>
+#endif
 #include <linux/delay.h>
 #else
 #include "msm_smd.h"

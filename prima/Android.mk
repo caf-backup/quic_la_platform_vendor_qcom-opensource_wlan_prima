@@ -43,6 +43,16 @@ else
        DLKM_DIR := build/dlkm
 endif
 
+# Some kernel include files are being moved.  Check to see if
+# the old version of the files are present
+INCLUDE_SELECT :=
+ifneq ($(wildcard $(TOP)/kernel//arch/arm/mach-msm/include/mach/msm_smd.h),)
+	INCLUDE_SELECT += EXISTS_MSM_SMD=1
+endif
+
+ifneq ($(wildcard $(TOP)/kernel//arch/arm/mach-msm/include/mach/msm_smsm.h),)
+	INCLUDE_SELECT += EXISTS_MSM_SMSM=1
+endif
 
 # Build wlan.ko as either prima_wlan.ko or pronto_wlan.ko
 ###########################################################
@@ -56,6 +66,7 @@ KBUILD_OPTIONS := WLAN_ROOT=../$(WLAN_BLD_DIR)/prima
 KBUILD_OPTIONS += MODNAME=wlan
 KBUILD_OPTIONS += BOARD_PLATFORM=$(TARGET_BOARD_PLATFORM)
 KBUILD_OPTIONS += $(WLAN_SELECT)
+KBUILD_OPTIONS += $(INCLUDE_SELECT)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE              := proprietary_$(WLAN_CHIPSET)_wlan.ko
