@@ -1128,6 +1128,7 @@ limDeleteCachedScanResults(tpAniSirGlobal pMac)
 {
     tLimScanResultNode    *pNode, *pNextNode;
     tANI_U16 i;
+
     for (i = 0; i < LIM_MAX_NUM_OF_SCAN_RESULTS; i++)
     {
         if ((pNode = pMac->lim.gLimCachedScanHashTable[i]) != NULL)
@@ -1171,6 +1172,7 @@ limDeleteCachedScanResults(tpAniSirGlobal pMac)
 void
 limReInitScanResults(tpAniSirGlobal pMac)
 {
+    limLog(pMac, LOG1, FL("Re initialize scan hash table."));
     limDeleteCachedScanResults(pMac);
     limInitHashTable(pMac);
 
@@ -1249,6 +1251,7 @@ limDeleteCachedLfrScanResults(tpAniSirGlobal pMac)
 void
 limReInitLfrScanResults(tpAniSirGlobal pMac)
 {
+    limLog(pMac, LOG1, FL("Re initialize lfr scan hash table."));
     limDeleteCachedLfrScanResults(pMac);
     limInitLfrHashTable(pMac);
 
