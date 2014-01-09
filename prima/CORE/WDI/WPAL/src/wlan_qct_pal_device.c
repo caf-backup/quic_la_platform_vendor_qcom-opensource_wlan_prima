@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
+
 /**=========================================================================
   
   @file  wlan_qct_pal_device.c
@@ -41,7 +42,11 @@
 #include <linux/irqreturn.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
+#ifdef EXISTS_MSM_SMSM
 #include <mach/msm_smsm.h>
+#else
+#include <soc/qcom/smsm.h>
+#endif
 #include "wlan_qct_pal_api.h"
 #include "wlan_qct_pal_device.h"
 #include "wlan_hdd_main.h"
