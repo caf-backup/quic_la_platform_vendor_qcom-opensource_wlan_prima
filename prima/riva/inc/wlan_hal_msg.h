@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
+* Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*==========================================================================
  *
  *  @file:     wlan_hal_msg.h
@@ -98,7 +99,7 @@ typedef tANI_U8 tHalIpv4Addr[4];
 
 #define WLAN_HAL_ROAM_SCAN_MAX_PROBE_SIZE     450
 #define WLAN_HAL_ROAM_SCAN_MAX_CHANNELS       NUM_RF_CHANNELS
-#define WLAN_HAL_ROAM_SCAN_RESERVED_BYTES     57
+#define WLAN_HAL_ROAM_SCAN_RESERVED_BYTES     56
 
 /* Message types for messages exchanged between WDI and HAL */
 typedef enum 
@@ -5595,6 +5596,7 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U8           nProbes;
    tANI_U16          HomeAwayTime;
    eAniBoolean       MAWCEnabled;
+   tANI_S8           RxSensitivityThreshold;
    tANI_U8           ReservedBytes[WLAN_HAL_ROAM_SCAN_RESERVED_BYTES];
    tRoamNetworkType  ConnectedNetwork;
    tMobilityDomainInfo MDID;
