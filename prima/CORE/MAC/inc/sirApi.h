@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
+* Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirApi.h contains definitions exported by
@@ -3418,7 +3419,30 @@ typedef struct sSirUpdateAPWPARSNIEsReq
 #define CHANNEL_LIST_DYNAMIC_UPDATE           4 /* Occupied channel list can be learnt after update */
 #define SIR_ROAM_SCAN_24G_DEFAULT_CH     1
 #define SIR_ROAM_SCAN_5G_DEFAULT_CH      36
-#define SIR_ROAM_SCAN_RESERVED_BYTES     61
+
+/*Adaptive Thresholds to be used for FW based scanning*/
+#define LFR_SENSITIVITY_THR_1MBPS             -89
+#define LFR_LOOKUP_THR_1MBPS                  -78
+#define LFR_SENSITIVITY_THR_2MBPS             -87
+#define LFR_LOOKUP_THR_2MBPS                  -78
+#define LFR_SENSITIVITY_THR_5_5MBPS           -86
+#define LFR_LOOKUP_THR_5_5MBPS                -77
+#define LFR_SENSITIVITY_THR_11MBPS            -85
+#define LFR_LOOKUP_THR_11MBPS                 -76
+#define LFR_SENSITIVITY_THR_6MBPS_2G          -83
+#define LFR_LOOKUP_THR_6MBPS_2G               -78
+#define LFR_SENSITIVITY_THR_6MBPS_5G          -83
+#define LFR_LOOKUP_THR_6MBPS_5G               -78
+#define LFR_SENSITIVITY_THR_12MBPS_2G         -83
+#define LFR_LOOKUP_THR_12MBPS_2G              -78
+#define LFR_SENSITIVITY_THR_12MBPS_5G         -81
+#define LFR_LOOKUP_THR_12MBPS_5G              -76
+#define LFR_SENSITIVITY_THR_24MBPS_2G         -81
+#define LFR_LOOKUP_THR_24MBPS_2G              -76
+#define LFR_SENSITIVITY_THR_24MBPS_5G         -79
+#define LFR_LOOKUP_THR_24MBPS_5G              -74
+#define LFR_SENSITIVITY_THR_DEFAULT             0
+#define LFR_LOOKUP_THR_DEFAULT                -78
 #endif //WLAN_FEATURE_ROAM_SCAN_OFFLOAD
 
 // SME -> HAL - This is the host offload request. 
@@ -3712,6 +3736,7 @@ typedef struct sSirRoamOffloadScanReq
   eAniBoolean RoamScanOffloadEnabled;
   eAniBoolean MAWCEnabled;
   tANI_S8     LookupThreshold;
+  tANI_S8     RxSensitivityThreshold;
   tANI_U8     RoamRssiDiff;
   tANI_U8     ChannelCacheType;
   tANI_U8     Command;
@@ -3728,16 +3753,6 @@ typedef struct sSirRoamOffloadScanReq
   tANI_U8   p24GProbeTemplate[SIR_ROAM_SCAN_MAX_PB_REQ_SIZE];
   tANI_U16  us5GProbeTemplateLen;
   tANI_U8   p5GProbeTemplate[SIR_ROAM_SCAN_MAX_PB_REQ_SIZE];
-  tANI_U8     ReservedBytes[SIR_ROAM_SCAN_RESERVED_BYTES];
-  /*ReservedBytes is to add any further params in future
-    without changing the interface params on Host
-    and firmware.The firmware right now checks
-    if the size of this structure matches and then
-    proceeds with the processing of the command.
-    So, in future, if there is any need to add
-    more params, pick the memory from reserved
-    bytes and keep deducting the reserved bytes
-    by the amount of bytes picked.*/
   tANI_U8   nProbes;
   tANI_U16  HomeAwayTime;
   tSirRoamNetworkType ConnectedNetwork;
