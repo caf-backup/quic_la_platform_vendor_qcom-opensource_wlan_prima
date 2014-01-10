@@ -2010,7 +2010,6 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_ASD_RTT_RSSI_HYST_THRESHOLD_MIN              (0)
 #define CFG_ASD_RTT_RSSI_HYST_THRESHOLD_MAX              (100)
 
-
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
