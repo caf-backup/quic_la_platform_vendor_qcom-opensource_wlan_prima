@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
+* Copyright (c) 2011-2014 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( __VOS_PKT_H )
 #define __VOS_PKT_H
 
@@ -31,7 +32,8 @@
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
-
+#define VOS_PKT_PROTO_TYPE_EAPOL   0x02
+#define VOS_PKT_PROTO_TYPE_DHCP    0x04
 /*-------------------------------------------------------------------------- 
   Type declarations
   ------------------------------------------------------------------------*/
@@ -1095,4 +1097,9 @@ VOS_STATUS vos_pkt_get_available_buffer_pool
 */
 v_SIZE_t vos_pkt_get_num_of_rx_raw_pkts(void);
 
+v_U8_t vos_pkt_get_proto_type
+(
+   void  *pskb,
+   v_U8_t tracking_map
+);
 #endif  // !defined( __VOS_PKT_H )
