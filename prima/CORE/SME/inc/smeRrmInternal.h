@@ -1,9 +1,7 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
  * */
 #if !defined( __SMERRMINTERNAL_H )
 #define __SMERRMINTERNAL_H
@@ -86,6 +84,7 @@ typedef struct sRrmSMEContext
 #if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
    tCsrCcxBeaconReq  ccxBcnReqInfo;
 #endif /* FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
+   tRrmMsgReqSource msgSource;
 }tRrmSMEContext, *tpRrmSMEContext; 
 
 typedef struct sRrmNeighborReq

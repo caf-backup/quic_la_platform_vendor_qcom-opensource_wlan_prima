@@ -1,9 +1,7 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
-/*
+ * Copyright (c) 2011-2012,2014 Qualcomm Atheros, Inc.
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
  * */
 
 #if !defined( __RRMGLOBAL_H )
@@ -29,6 +27,12 @@ typedef enum eRrmRetStatus
     eRRM_FAILURE
 } tRrmRetStatus;
 
+typedef enum eRrmMsgReqSource
+{
+    eRRM_MSG_SOURCE_DRV         = 1, /* for both 11k and legacy ccx */
+    eRRM_MSG_SOURCE_CCX_UPLOAD  = 2, /* ccx upload approach */
+} tRrmMsgReqSource;
+
 typedef struct sSirChannelInfo
 {
    tANI_U8 regulatoryClass;
@@ -48,6 +52,7 @@ typedef struct sSirBeaconReportReqInd
    tAniSSID     ssId;              //May be wilcard.
    tANI_U16      uDialogToken;
    tSirChannelList channelList; //From AP channel report.
+   tRrmMsgReqSource msgSource;
 } tSirBeaconReportReqInd, * tpSirBeaconReportReqInd;
 
 

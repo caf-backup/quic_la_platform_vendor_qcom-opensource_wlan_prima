@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
+* Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
+ * All Rights Reserved. 
+ * Qualcomm Atheros Confidential and Proprietary. 
+*/
+
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file parserApi.cc contains the code for parsing
@@ -3397,7 +3398,7 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     {
         //CCX Tx Power
         pBeaconStruct->ccxTxPwr.present = 1;
-        palCopyMemory( pMac->hHdd, &pBeaconStruct->ccxTxPwr,
+        vos_mem_copy(&pBeaconStruct->ccxTxPwr,
                                    &pBeacon->CCXTxmitPower,
                                    sizeof(tDot11fIECCXTxmitPower));
     }
@@ -4134,7 +4135,7 @@ tSirRetStatus PopulateDot11fCCXCckmOpaque( tpAniSirGlobal pMac,
         {
             pDot11f->present  = 1;
             pDot11f->num_data = pCCKMie->cckmIEdata[ idx + 1 ] - 4; // Dont include OUI
-            palCopyMemory( pMac->hHdd, pDot11f->data,
+            vos_mem_copy(pDot11f->data,
                            pCCKMie->cckmIEdata + idx + 2 + 4,    // EID, len, OUI
                            pCCKMie->cckmIEdata[ idx + 1 ] - 4 ); // Skip OUI
         }
