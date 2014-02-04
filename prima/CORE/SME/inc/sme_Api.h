@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
+* Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 #if !defined( __SME_API_H )
 #define __SME_API_H
 
@@ -84,6 +85,7 @@ typedef struct _smeConfigParams
 #endif
     tANI_BOOLEAN  fScanOffload;
     tANI_U8  isAmsduSupportInAMPDU;
+    tANI_U32       fEnableDebugLog;
 } tSmeConfigParams, *tpSmeConfigParams;
 
 typedef enum
@@ -3169,4 +3171,5 @@ eHalStatus sme_AddChAvoidCallback
    void (*pCallbackfn)(void *pAdapter, void *indParam)
 );
 #endif /* FEATURE_WLAN_CH_AVOID */
+eHalStatus sme_UpdateConnectDebug(tHalHandle hHal, tANI_U32 set_value);
 #endif //#if !defined( __SME_API_H )

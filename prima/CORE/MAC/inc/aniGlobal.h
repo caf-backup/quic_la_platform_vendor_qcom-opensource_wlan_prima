@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
- * All Rights Reserved.
- * Qualcomm Atheros Confidential and Proprietary.
- */
+* Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
+* All Rights Reserved.
+* Qualcomm Atheros Confidential and Proprietary.
+*/
+
 /*
  * Airgo Networks, Inc proprietary. All rights reserved
  * aniGlobal.h: MAC Modules Adapter Definitions.
@@ -1040,6 +1041,7 @@ typedef struct sAniSirGlobal
 #endif
     tANI_U8 fScanOffload;
     tANI_U8 isCoalesingInIBSSAllowed;
+    tANI_U32 fEnableDebugLog;
 } tAniSirGlobal;
 
 #ifdef FEATURE_WLAN_TDLS
