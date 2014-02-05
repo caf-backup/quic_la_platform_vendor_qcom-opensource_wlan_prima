@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2013-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -30,6 +30,9 @@
 /*---------------------------------------------------------------------------
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/
+
+/* max length of command string in hostapd ioctl */
+#define HOSTAPD_IOCTL_COMMAND_STRLEN_MAX   2048
 
 hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAddr, tANI_U8 *name);
 
