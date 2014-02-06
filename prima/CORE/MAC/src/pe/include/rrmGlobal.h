@@ -153,6 +153,7 @@ typedef struct sRRMReq
          tRRMBeaconReportRequestedIes reqIes;
       }Beacon;
    }request;
+   tANI_U8 sendEmptyBcnRpt;
 }tRRMReq, *tpRRMReq;
 
 typedef struct sRRMCaps
