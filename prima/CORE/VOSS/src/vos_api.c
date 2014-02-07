@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -1925,7 +1925,7 @@ void vos_abort_mac_scan(v_U8_t sessionId)
        return;
     }
 
-    hdd_abort_mac_scan(pHddCtx, sessionId);
+    hdd_abort_mac_scan(pHddCtx, sessionId, eCSR_SCAN_ABORT_DEFAULT);
     return;
 }
 /*---------------------------------------------------------------------------

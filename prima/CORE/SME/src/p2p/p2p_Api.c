@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -1136,7 +1136,7 @@ eHalStatus p2pCreateActionFrame(tpAniSirGlobal pMac, tANI_U8 SessionID, void *p2
       return eHAL_STATUS_FAILURE;
    }
 
-   csrScanAbortMacScan(pMac);
+   csrScanAbortMacScan(pMac, SessionID, eCSR_SCAN_ABORT_DEFAULT);
 
    switch (actionFrameType)
    {

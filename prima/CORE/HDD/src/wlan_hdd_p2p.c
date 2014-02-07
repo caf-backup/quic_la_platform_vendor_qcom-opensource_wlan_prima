@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 Qualcomm Atheros, Inc.
+ * Copyright (c) 2012-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  */
@@ -1646,7 +1646,8 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
                         hddLog(LOGE,"Action frame received when Scanning is in"
                                     " progress. Abort Scan.");
                         hdd_abort_mac_scan(pAdapter->pHddCtx,
-                                           pAdapter->sessionId);
+                                           pAdapter->sessionId,
+                                           eCSR_SCAN_ABORT_DEFAULT);
                     }
                 }
                 if (((actionFrmType == WLAN_HDD_PROV_DIS_RESP) &&
