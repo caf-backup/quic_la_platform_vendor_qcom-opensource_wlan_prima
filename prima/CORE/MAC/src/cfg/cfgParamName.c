@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2013 Qualcomm Atheros, Inc.
+ * Copyright (C) 2011-2014 Qualcomm Atheros, Inc.
  * All Rights Reserved.
  * Qualcomm Atheros Confidential and Proprietary.
  * Copyright (C) 2007-2009 Qualcomm Technologies, Inc.
@@ -333,6 +333,14 @@ unsigned char *gCfgParamName[] = {
     (unsigned char *)"ASD_RTT_RSSI_HYST_THRESHOLD",
     (unsigned char *)"DEBUG_P2P_REMAIN_ON_CHANNEL",
     (unsigned char *)"BTC_CTS2S_DURING_SCO",
+    (unsigned char *)"CHANNEL_BONDING_24G",
+    (unsigned char *)"OBSS_HT40_SCAN_PASSIVE_DWELL_TIME",
+    (unsigned char *)"OBSS_HT40_SCAN_ACTIVE_DWELL_TIME",
+    (unsigned char *)"OBSS_HT40_SCAN_WIDTH_TRIGGER_INTERVAL",
+    (unsigned char *)"OBSS_HT40_SCAN_PASSIVE_TOTAL_PER_CHANNEL",
+    (unsigned char *)"OBSS_HT40_SCAN_ACTIVE_TOTAL_PER_CHANNEL",
+    (unsigned char *)"OBSS_HT40_WIDTH_CHANNEL_TRANSITION_DELAY_FACTOR",
+    (unsigned char *)"OBSS_HT40_SCAN_ACTIVITY_THRESHOLD",
 };
 
 
