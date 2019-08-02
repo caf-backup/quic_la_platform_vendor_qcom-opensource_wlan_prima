@@ -26,6 +26,9 @@ ifeq ($(KERNEL_BUILD), 0)
 	#JB kernel has PMKSA patches, hence enabling this flag
 	CONFIG_PRIMA_WLAN_OKC := y
 
+	#Flag to enable SAE
+	CONFIG_WLAN_FEATURE_SAE := y
+
 	# JB kernel has CPU enablement patches, so enable
 	CONFIG_PRIMA_WLAN_11AC_HIGH_TP := y
 
@@ -608,6 +611,10 @@ endif
 
 ifeq ($(CONFIG_PRIMA_WLAN_LFR),y)
 CDEFINES += -DFEATURE_WLAN_LFR
+endif
+
+ifeq ($(CONFIG_WLAN_FEATURE_SAE),y)
+CDEFINES += -DWLAN_FEATURE_SAE
 endif
 
 ifeq ($(CONFIG_PRIMA_WLAN_OKC),y)
