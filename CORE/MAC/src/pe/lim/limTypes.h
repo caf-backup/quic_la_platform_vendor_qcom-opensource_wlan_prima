@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1095,5 +1095,13 @@ tSirRetStatus limProcessSmeSetTdls2040BSSCoexReq(tpAniSirGlobal pMac,
                                                  tANI_U32 *pMsgBuf);
 tSirRetStatus limProcessSmeDelAllTdlsPeers(tpAniSirGlobal pMac,
                                            tANI_U32 *pMsgBuf);
+/**
+ * lim_send_mgmt_frame_tx() - Sends mgmt frame
+ * @mac_ctx Pointer to Global MAC structure
+ * @msg: Received message info
+ *
+ * Return: None
+ */
+void lim_send_mgmt_frame_tx(tpAniSirGlobal mac_ctx, tpSirMsgQ msg);
 #endif /* __LIM_TYPES_H */
 
