@@ -2598,7 +2598,8 @@ limProcessMlmAuthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                                  pMac->lim.gpLimMlmAuthReq->peerMacAddr);
 
         psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
-        if (pMac->lim.gpLimMlmAuthReq->authType == eSIR_AUTH_TYPE_SAE) {
+        if ((pMac->lim.gpLimMlmAuthReq->authType == eSIR_AUTH_TYPE_SAE) &&
+             !psessionEntry->sae_pmk_cached) {
             if (lim_process_mlm_auth_req_sae(pMac, psessionEntry) !=
                 VOS_STATUS_SUCCESS) {
                 mlmAuthCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
