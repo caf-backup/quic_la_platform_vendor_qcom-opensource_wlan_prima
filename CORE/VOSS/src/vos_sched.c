@@ -2166,3 +2166,13 @@ void vos_dump_stack(uint8_t thread_id)
                              "%s: Invalid thread invoked",__func__);
    }
 }
+
+int vos_get_gfp_flags(void)
+{
+   int flags = GFP_KERNEL;
+
+   if (in_interrupt() || in_atomic() || irqs_disabled())
+      flags = GFP_ATOMIC;
+
+   return flags;
+}
