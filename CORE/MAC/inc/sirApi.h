@@ -1042,6 +1042,7 @@ typedef struct sSirSmeJoinReq
     tSirBssType         bsstype;                // add new type for BT -AMP STA and AP Modules
     tANI_U8             dot11mode;              // to support BT-AMP     
     tVOS_CON_MODE       staPersona;             //Persona
+    bool                sae_pmk_cached;
     tANI_BOOLEAN        bOSENAssociation;       //HS2.0
     ePhyChanBondState   cbMode;                 // Pass CB mode value in Join.
 
@@ -1107,7 +1108,6 @@ typedef struct sSirSmeJoinReq
     tAniBool            spectrumMgtIndicator;
     tSirMacPowerCapInfo powerCap;
     tSirSupChnl         supportedChannels;
-    bool sae_pmk_cached;
     tSirBssDescription  bssDescription;
 
 } tSirSmeJoinReq, *tpSirSmeJoinReq;
