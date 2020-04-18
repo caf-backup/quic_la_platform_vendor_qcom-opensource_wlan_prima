@@ -4062,4 +4062,11 @@ sme_get_cb_phy_mode_from_cb_ini_mode(uint32_t cb_ini_value)
    return csrConvertCBIniValueToPhyCBState(cb_ini_value);
 }
 
+#define MAX_BSSID_AVOID_LIST 16
+
+struct roam_ext_params {
+    uint8_t blacklist_timedout;
+    uint8_t num_bssid_avoid_list;
+    v_MACADDR_t bssid_avoid_list[MAX_BSSID_AVOID_LIST];
+};
 #endif //#if !defined( __SME_API_H )
