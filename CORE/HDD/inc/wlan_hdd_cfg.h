@@ -880,6 +880,11 @@ typedef enum
 #define CFG_LFR_MAWC_FEATURE_ENABLED_MIN                    (0)
 #define CFG_LFR_MAWC_FEATURE_ENABLED_MAX                    (1)
 #define CFG_LFR_MAWC_FEATURE_ENABLED_DEFAULT                (0) /* disabled */
+
+#define CFG_PER_BSSID_BLACKLIST_TIMEOUT_NAME               "gBssidBlacklistTimeOut"
+#define CFG_PER_BSSID_BLACKLIST_TIMEOUT_MIN                (0)
+#define CFG_PER_BSSID_BLACKLIST_TIMEOUT_MAX                (240) //Max timeout
+#define CFG_PER_BSSID_BLACKLIST_TIMEOUT_DEFAULT            (10)
 #endif // FEATURE_WLAN_LFR
 
 #if  defined (WLAN_FEATURE_VOWIFI_11R) || defined (FEATURE_WLAN_ESE) || defined(FEATURE_WLAN_LFR)
@@ -3748,6 +3753,9 @@ typedef struct
    uint32_t                    sta_sap_scc_on_dfs_chan;
    uint8_t                     enable_aggr_btc_sco_oui[9];
    uint8_t                     num_buff_aggr_btc_sco;
+#ifdef FEATURE_WLAN_LFR
+   uint8_t                     bssid_blacklist_timeout;
+#endif
 } hdd_config_t;
 
 /*--------------------------------------------------------------------------- 
