@@ -3756,4 +3756,16 @@ eHalStatus sme_fatal_event_logs_req(tHalHandle hHal, tANI_U32 is_fatal,
 eHalStatus sme_enableDisableChanAvoidIndEvent(tHalHandle hHal,
                                               tANI_U8 set_value);
 
+/**
+ * sme_send_mgmt_tx() - Sends mgmt frame from CSR to LIM
+ * @hal: The handle returned by mac_open
+ * @session_id: session id
+ * @buf: pointer to frame
+ * @len: frame length
+ *
+ * Return: eHalStatus
+ */
+eHalStatus sme_send_mgmt_tx(tHalHandle hal, uint8_t session_id,
+                                const uint8_t *buf, uint32_t len);
+
 #endif //#if !defined( __SME_API_H )

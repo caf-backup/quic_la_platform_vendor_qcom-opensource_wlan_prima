@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2015, 2019 The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -1206,6 +1206,7 @@ int __wlan_hdd_mgmt_tx( struct wiphy *wiphy, struct net_device *dev,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     hdd_adapter_t *goAdapter;
 #endif
+    eHalStatus hal_status;
 
     ENTER();
     MTRACE(vos_trace(VOS_MODULE_ID_HDD,
@@ -1221,6 +1222,18 @@ int __wlan_hdd_mgmt_tx( struct wiphy *wiphy, struct net_device *dev,
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: device_mode = %d type: %d",
                             __func__, pAdapter->device_mode, type);
 
+    /* When frame to be transmitted is auth mgmt, then trigger
+     * sme_send_mgmt_tx to send auth frame.
+     */
+    if ((WLAN_HDD_INFRA_STATION == pAdapter->device_mode) &&
+        (type == SIR_MAC_MGMT_FRAME && subType == SIR_MAC_MGMT_AUTH)) {
+         hal_status = sme_send_mgmt_tx(WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                       pAdapter->sessionId, buf, len);
+         if (HAL_STATUS_SUCCESS(hal_status))
+              return 0;
+         else
+              return -EINVAL;
+    }
 
     if ((type == SIR_MAC_MGMT_FRAME) &&
             (subType == SIR_MAC_MGMT_ACTION) &&
