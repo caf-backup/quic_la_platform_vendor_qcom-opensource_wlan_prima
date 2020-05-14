@@ -5637,4 +5637,20 @@ typedef struct
     void *context;
     tSirMonModeCb callback;
 }tSirMonModeReq, *ptSirMonModeReq;
+/**
+ * struct sae_info - SAE info used for commit/confirm messages
+ * @msg_type: Message type
+ * @msg_len: length of message
+ * @vdev_id: vdev id
+ * @peer_mac_addr: peer MAC address
+ * @ssid: SSID
+ */
+struct sir_sae_info {
+    uint16_t msg_type;
+    uint16_t msg_len;
+    uint32_t vdev_id;
+    v_MACADDR_t peer_mac_addr;
+    tSirMacSSid ssid;
+};
+
 #endif /* __SIR_API_H */

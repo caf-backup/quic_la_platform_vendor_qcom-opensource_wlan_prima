@@ -512,6 +512,7 @@ typedef enum
 #endif /* FEATURE_WLAN_ESE && FEATURE_WLAN_ESE_UPLOAD */
     eCSR_ROAM_UPDATE_MAX_RATE_IND,
     eCSR_ROAM_LOST_LINK_PARAMS_IND,
+    eCSR_ROAM_SAE_COMPUTE,
 }eRoamCmdStatus;
 
 
@@ -1286,6 +1287,9 @@ typedef struct tagCsrRoamInfo
     tANI_U32 maxRateFlags;
 #ifdef WLAN_FEATURE_AP_HT40_24G
     tpSirHT2040CoexInfoInd pSmeHT2040CoexInfoInd;
+#endif
+#ifdef WLAN_FEATURE_SAE
+    struct sir_sae_info *sae_info;
 #endif
 }tCsrRoamInfo;
 
