@@ -628,6 +628,9 @@ typedef enum
    WLAN_HAL_FW_GET_ARP_STATS_REQ             = 356,
    WLAN_HAL_FW_GET_ARP_STATS_RSP             = 357,
 
+   WLAN_HAL_BLACK_LIST_SSID_REQ              = 362,
+   WLAN_HAL_BLACK_LIST_SSID_RSP              = 363,
+
    WLAN_HAL_MSG_MAX = WLAN_HAL_MSG_TYPE_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
